@@ -1,0 +1,9 @@
+.DS_Store
+*.pyc
+*.db
+*.lock
+.idea/
+chocolate.egg-info/
+__pycache__/
+doc/_build
+env/
