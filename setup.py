@@ -1,11 +1,9 @@
 
 from setuptools import setup, find_packages
 
-import chocolate
-
 setup(
     name="chocolate",
-    version=chocolate.__version__,
+    version="0.1",
     packages=find_packages(exclude=['examples', 'tests']),
     test_suite="tests",
     install_requires=["numpy>=1.11", "dataset>=0.7", "filelock>=2.0"],
