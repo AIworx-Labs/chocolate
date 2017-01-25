@@ -654,7 +654,8 @@ class Space(object):
                     cond_spaces, cond_indices = v._subspaces()
                     conditionals.append(cond_spaces)
                     conditional_idx.append([[position + j for j in s] for s in cond_indices])
-                    position += max(max(s) for s in cond_indices) + 1
+                    if any(cond_indices):
+                        position += max(max(s) for s in cond_indices if s) + 1
                     
 
             if len(conditionals) == 0:

@@ -21,9 +21,6 @@ class MongoDBConnection(Connection):
             necessary to the optimizer.
     """
     def __init__(self, url, database="chocolate", result_col="results", complementary_col="complementary", space_col="space"):
-        if not MongoClient:
-            raise 
-        
         self.client = MongoClient(url)
         self.db = self.client[database]
         self.result_collection_name = result_col

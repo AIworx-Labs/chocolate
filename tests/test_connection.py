@@ -167,6 +167,9 @@ class TestSQLite(unittest.TestCase, Base):
         engine_str = os.path.join(self.db_path, self.db_name)
         self.assertRaises(RuntimeError, SQLiteConnection, engine_str)
 
+    def test_memory(self):
+        pass
+
 @unittest.skipIf(pymongo is None, "Cannot find pymongo module")
 @unittest.skipIf(mongodb == False, "Cannot cannot connect to mongodb://localhost:27017/")
 class TestMongoDB(unittest.TestCase, Base):

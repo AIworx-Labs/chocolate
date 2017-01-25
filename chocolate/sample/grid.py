@@ -14,6 +14,8 @@ class ParameterGrid(object):
     def __len__(self):
         length = 0
         for subspace in self.space.subspaces():
+            if not subspace:
+                continue
             sizes = [len(v_list) if isinstance(v_list, Distribution) else 1 for v_list in subspace]
             length += numpy.product(sizes)
 
@@ -30,14 +32,6 @@ class ParameterGrid(object):
         names = iter(self.space.names())
         for subspace in self.space.subspaces():
             # XXX: could memoize information used here
-            if not subspace:
-                if i == 0:
-                    return {}
-                else:
-                    i -= 1
-                    continue
-
-            # values_lists = zip(*(list(subspace.items())))
             sizes = [len(v_list) if isinstance(v_list, Distribution) else 1 for v_list in subspace]
             total = numpy.product(sizes)
 
@@ -53,7 +47,6 @@ class ParameterGrid(object):
                     else:
                         out.append(v_list)
 
-                # for i, k in enumerate(self.space.)
                 return out
 
 

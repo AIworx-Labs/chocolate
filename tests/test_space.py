@@ -21,6 +21,10 @@ class TestSpace(unittest.TestCase):
         x = numpy.array([0, 0.5])
         self.assertEqual(s(x), {"a" : 0.0005, "b" : 2**5.5})
 
+    def test_empty_space(self):
+        s = Space(dict())
+        self.assertEqual(len(s), 0)
+
     def test_continuous(self):
         u = uniform(0.0005, 0.1)
         l = log(1, 10, 2)
