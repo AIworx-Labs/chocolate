@@ -15,16 +15,6 @@ itself.
 Chocolat is licensed under the `3-Clause BSD License
 <https://opensource.org/licenses/BSD-3-Clause>`_
 
-.. sidebar:: Getting Help
-    
-    Having trouble? We’d like to help!
-
-    * Search for information in the archives of the `deap-users mailing list 
-      <https://groups.google.com/forum/?fromgroups#!forum/deap-users>`_,
-      or post a question.
-    * Report bugs with DEAP in our `issue tracker 
-      <https://www.github.com/deap/deap/issues>`_.
-
 * **Tutorials**
   
   * :doc:`Basics (Start here!) <tutorials/basics>`
