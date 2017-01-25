@@ -1,5 +1,6 @@
 
 from contextlib import contextmanager
+import pickle
 import re
 
 import dataset
@@ -34,6 +35,15 @@ class SQLiteConnection(Connection):
     """
     def __init__(self, url, result_table="results", complementary_table="complementary", space_table="space"):
         super(SQLiteConnection, self).__init__()
+        if url.endswith("/"):
+            raise RuntimeError("Empty database name {}".format(url))
+
+        if url.endswith((" ", "\t")):
+            raise RuntimeError("Database name ends with space {}".format(url))
+
+        if not url.startswith("sqlite://"):
+            raise RuntimeError("Missing 'sqlite:///' at the begin of url".format(url))
+
         match = re.search("sqlite:///(.*)", url)
         if match is not None:
             db_path = match.group(1)
@@ -44,15 +54,16 @@ class SQLiteConnection(Connection):
             raise RuntimeError("Cannot find sqlite db path in {}".format(url))
 
         self.db = dataset.connect(url)
-        self.results = self.db[result_table]
+        self.result_table_name = result_table
+        self.complementary_table_name = complementary_table
+        self.space_table_name = space_table
+        self.results = self.db[self.result_table_name]
         # Initializing with None turns a column into str,
         # ensure float for loss
         self.results.create_column("_loss", sqlalchemy.Float)
         
-        self.complementary = self.db[complementary_table]
-        
-        self.space = self.db[space_table]
-
+        self.complementary = self.db[self.complementary_table_name]
+        self.space = self.db[self.space_table_name]
         self._lock = filelock.FileLock("{}.lock".format(db_path))
 
     @contextmanager
@@ -134,7 +145,34 @@ class SQLiteConnection(Connection):
         return self.complementary.find_one(**filter)
 
     def get_space(self):
-        pass
+        """Returns the space used for previous experiments.
 
-    def insert_space(self):
-        pass
+        Raises:
+        AssertionError: If there are more than one space in the database.
+        """
+        entry_count = self.space.count()
+        if entry_count == 0:
+            return None
+
+        assert entry_count == 1, ("Space table unexpectedly contains more than one space.")
+        return pickle.loads(self.space.find_one()["space"])
+
+    def insert_space(self, space):
+        """Insert a space in the database.
+
+        Raises:
+            AssertionError: If a space is already present in the database.
+        """
+        assert self.space.count() == 0, ("Space table cannot contain more than one space, "
+            "clear table first.")
+        return self.space.insert({"space" : pickle.dumps(space)})
+
+    def clear(self):
+        """Clear all data from the database.
+        """
+        self.results.drop()
+        self.complementary.drop()
+        self.space.drop()
+        self.results = self.db[self.result_table_name]
+        self.complementary = self.db[self.complementary_table_name]
+        self.space = self.db[self.space_table_name]

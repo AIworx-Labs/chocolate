@@ -2,9 +2,13 @@
 import multiprocessing
 import os
 import shutil
+import string
 import time
 import unittest
 import uuid
+
+from hypothesis import given
+from hypothesis.strategies import text
 
 try:
     import pymongo
@@ -20,7 +24,7 @@ if pymongo is not None:
     else:
         mongodb = True
 
-from chocolate import SQLiteConnection, MongoDBConnection
+from chocolate import SQLiteConnection, MongoDBConnection, Space, uniform
 
 def lock_db(conn_class, *args):
     conn = conn_class(*args)
@@ -108,6 +112,31 @@ class Base(object):
         res = self.conn.find_complementary(data[2])
         self.assertEqual(res["abc"], data[2]["abc"])
 
+    def test_space(self):
+        s = {"a" : uniform(1, 2),
+             "b" : {"c" : {"c1" : uniform(0, 5)},
+                    "d" : {"d1" : uniform(0, 6)}}}
+        space = Space(s)
+
+        space_read = self.conn.get_space()
+        self.assertEqual(space_read, None)
+
+        self.conn.insert_space(space)
+        space_read = self.conn.get_space()
+
+        self.assertEqual(space, space_read)
+        self.assertRaises(AssertionError, self.conn.insert_space, space)
+
+    def test_clear(self):
+        self.conn.insert_result({"foo" : "bar"})
+        self.conn.insert_complementary({"bar" : "spam", "foo" : 2})
+        self.conn.insert_space("some_data")
+        
+        self.conn.clear()
+        self.assertEqual(self.conn.count_results(), 0)
+        self.assertEqual(self.conn.all_complementary(), [])
+        self.assertEqual(self.conn.get_space(), None)
+
 
 class TestSQLite(unittest.TestCase, Base):
     def setUp(self):
@@ -123,6 +152,20 @@ class TestSQLite(unittest.TestCase, Base):
 
     def tearDown(self):
         shutil.rmtree(self.db_path)
+
+    @given(text(max_size=0))
+    def test_empty_name_connect(self, s):
+        engine_str = "sqlite:///{}".format(os.path.join(self.db_path, ""))
+        self.assertRaises(RuntimeError, SQLiteConnection, engine_str)
+
+    @given(text(alphabet="/ "))
+    def test_invalid_ending_name_connect(self, s):
+        engine_str = "sqlite:///{}".format(os.path.join(self.db_path, s))
+        self.assertRaises(RuntimeError, SQLiteConnection, engine_str)
+
+    def test_no_uri_connect(self):
+        engine_str = os.path.join(self.db_path, self.db_name)
+        self.assertRaises(RuntimeError, SQLiteConnection, engine_str)
 
 @unittest.skipIf(pymongo is None, "Cannot find pymongo module")
 @unittest.skipIf(mongodb == False, "Cannot cannot connect to mongodb://localhost:27017/")

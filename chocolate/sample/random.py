@@ -1,11 +1,11 @@
 
 import numpy
 
-from ..base import UpdatableMixin
+from ..base import SearchAlgorithmMixin
 from ..space import ContinuousDistribution
 from .grid import ParameterGrid
 
-class Random(UpdatableMixin):
+class Random(SearchAlgorithmMixin):
     """Random sampler.
 
     Samples the search space randomly. This sampler will draw random numbers
@@ -22,12 +22,15 @@ class Random(UpdatableMixin):
         space: The search space to explore with only discrete dimensions. The
             search space can be either a dictionary or a
             :class:`chocolate.Space` instance.
+        clear_db: If set to :data:`True` and a conflict arise between the
+            provided space and the space in the database, completely clear the
+            database and insert set the space to the provided one.
         random_state: Either a :class:`numpy.random.RandomState` instance, an
             object to initialize the random state with or
             :data:`None` in which case the global state is used.
     """
-    def __init__(self, connection, space, random_state=None):
-        super(Random, self).__init__(connection, space)
+    def __init__(self, connection, space, clear_db, random_state=None):
+        super(Random, self).__init__(connection, space, clear_db)
         if isinstance(random_state, numpy.random.RandomState):
             self.random_state = random_state
         elif random_state is None:

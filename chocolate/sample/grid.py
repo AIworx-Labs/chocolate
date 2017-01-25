@@ -3,7 +3,7 @@ from itertools import islice
 
 import numpy
 
-from ..base import UpdatableMixin
+from ..base import SearchAlgorithmMixin
 from ..space import Distribution, ContinuousDistribution
 
 class ParameterGrid(object):
@@ -21,6 +21,12 @@ class ParameterGrid(object):
 
     def __getitem__(self, i):
         # This is a reimplementation of scikit-learn ParameterGrid __getitem__
+        l = len(self)
+        if i < 0 and i >= -l:
+            i = l + i
+        elif i < -l or i >= l:
+            raise IndexError("list index out of range")
+
         names = iter(self.space.names())
         for subspace in self.space.subspaces():
             # XXX: could memoize information used here
@@ -51,7 +57,7 @@ class ParameterGrid(object):
                 return out
 
 
-class Grid(UpdatableMixin):
+class Grid(SearchAlgorithmMixin):
     """Regular cartesian grid sampler.
 
     Samples the search space at every point of the grid formed by all
@@ -60,9 +66,12 @@ class Grid(UpdatableMixin):
     Args:
         connection: A database connection object.
         space: The search space to explore with only discrete dimensions.
+        clear_db: If set to :data:`True` and a conflict arise between the
+            provided space and the space in the database, completely clear the
+            database and insert set the space to the provided one.
     """
-    def __init__(self, connection, space):
-        super(Grid, self).__init__(connection, space)
+    def __init__(self, connection, space, clear_db=False):
+        super(Grid, self).__init__(connection, space, clear_db)
         self.grid = ParameterGrid(self.space)
 
     def next(self):
@@ -94,4 +103,4 @@ class Grid(UpdatableMixin):
                 # return the true parameter set
                 return token, self.space(out)
         
-        raise StopIteration
+        raise StopIteration()

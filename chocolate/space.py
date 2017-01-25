@@ -32,6 +32,7 @@ class uniform(ContinuousDistribution):
             lower than high.
     """
     def __init__(self, low, high):
+        assert low < high, "Low must be lower than high"
         self.low = low
         self.high = high
 
@@ -47,6 +48,9 @@ class uniform(ContinuousDistribution):
 
     def __repr__(self):
         return "uniform(low={}, high={})".format(self.low, self.high)
+
+    def __eq__(self, other):
+        return self.low == other.low and self.high == other.high
 
     
 class quantized_uniform(QuantizedDistribution):
@@ -68,6 +72,8 @@ class quantized_uniform(QuantizedDistribution):
         step: The spacing between each discrete sample.
     """
     def __init__(self, low, high, step):
+        assert low < high, "Low must be lower than high"
+        assert step > 0, "Step must be greater than 0"
         self.low = low
         self.high = high
         self.step = step
@@ -114,6 +120,9 @@ class quantized_uniform(QuantizedDistribution):
     def __repr__(self):
         return "quantized_uniform(low={}, high={}, step={})".format(self.low, self.high, self.step)
 
+    def __eq__(self, other):
+        return self.low == other.low and self.high == other.high and self.step == other.step
+
     
 class log(uniform):
     """Logarithmic uniform continuous distribution.
@@ -131,6 +140,8 @@ class log(uniform):
     """
     def __init__(self, low, high, base):
         super(log, self).__init__(low, high)
+        assert base > 0, "Base must be larger than 0"
+        assert base != 1, "Base cannot equal 1"
         self.base = base
 
     def __call__(self, x):
@@ -138,6 +149,9 @@ class log(uniform):
 
     def __repr__(self):
         return "log(low={}, high={}, base={})".format(self.low, self.high, self.base)
+
+    def __eq__(self, other):
+        return self.low == other.low and self.high == other.high and self.base == other.base
 
     
 class quantized_log(quantized_uniform):
@@ -158,6 +172,8 @@ class quantized_log(quantized_uniform):
     """   
     def __init__(self, low, high, step, base):
         super(quantized_log, self).__init__(low, high, step)
+        assert base > 0, "Base must be larger than 0"
+        assert base != 1, "Base cannot equal 1"
         self.base = base
 
     def __call__(self, x):
@@ -179,6 +195,8 @@ class quantized_log(quantized_uniform):
     def __repr__(self):
         return "quantized_log(low={}, high={}, step={}, base={})".format(self.low, self.high, self.step, self.base)
 
+    def __eq__(self, other):
+        return self.low == other.low and self.high == other.high and self.step == other.step and self.base == other.base
 
 class choice(quantized_uniform):
     """Uniform choice distribution between non-numeric samples.
@@ -187,6 +205,7 @@ class choice(quantized_uniform):
         values: A list of choices to choose uniformly from.
     """
     def __init__(self, values):
+        assert len(values) > 0, "Choices must at least have one value"
         self.values = list(values)
         super(choice, self).__init__(low=0, high=len(self.values), step=1)
     
@@ -197,10 +216,14 @@ class choice(quantized_uniform):
         Returns:
             The corresponding choice from the entered values.
         """
+        assert x < 1, "Choices must lie in the half-open interval [0, 1)"
         return self.values[int(super(choice, self).__call__(x))]
 
     def __repr__(self):
         return "choice({})".format(self.values)
+
+    def __eq__(self, other):
+        return self.values == other.values
 
 
 class Space(object):
@@ -307,6 +330,8 @@ class Space(object):
 
             # print(subspace)
             for k, v in sorted(subspace.items()):
+                if k == "":
+                    raise RuntimeError("'' is not a valid parameter name")
                 if isinstance(v, Distribution):
                     ts_space[k] = v
                 elif isinstance(v, Mapping):
@@ -650,10 +675,33 @@ class Space(object):
 
         return branches, indices
 
+    def __eq__(self, other):
+        return self.spaces == other.spaces
+
 
 if __name__ == "__main__":
-    from sklearn.svm import SVC, LinearSVC
-    from sklearn.neighbors import KNeighborsClassifier
+    # from sklearn.svm import SVC, LinearSVC
+    # from sklearn.neighbors import KNeighborsClassifier
+
+    space1 = {"a" : uniform(1, 2),
+              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
+                     "d" : {"d1" : quantized_log(0, 5, 1, 2)}}}
+
+    space2 = {"a" : uniform(1, 2),
+              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
+                     "d" : {"d1" : quantized_log(0, 5, 1, 2)}}}
+
+    space3 = {"a" : uniform(1, 2),
+              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
+                     "d" : {"d2" : quantized_log(0, 5, 1, 2)}}}
+
+    space4 = {"a" : uniform(1, 2),
+              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
+                     "d" : {"d1" : quantized_log(0, 5, 1, 8)}}}
+
+    print(Space(space1) == Space(space2))
+    print(Space(space1) == Space(space3))
+    print(Space(space1) == Space(space4))
 
     space = {"initial_learning_rate" : choice([0.0005]),
              "learning_rate_decay" : choice([0.0004]),

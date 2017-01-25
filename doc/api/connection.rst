@@ -23,6 +23,12 @@ Database Connections
 
    .. automethod:: find_complementary
 
+   .. automethod:: get_space
+
+   .. automethod:: insert_space
+
+   .. automethod:: clear
+
 .. autoclass:: MongoDBConnection
 
    .. automethod:: lock
@@ -40,3 +46,9 @@ Database Connections
    .. automethod:: insert_complementary
 
    .. automethod:: find_complementary
+
+   .. automethod:: get_space
+
+   .. automethod:: insert_space
+
+   .. automethod:: clear

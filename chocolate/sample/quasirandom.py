@@ -1,9 +1,9 @@
 
 import ghalton
 
-from ..base import UpdatableMixin
+from ..base import SearchAlgorithmMixin
 
-class QuasiRandom(UpdatableMixin):
+class QuasiRandom(SearchAlgorithmMixin):
     """Quasi-Random sampler.
 
     Samples the search space using the generalized Halton low-discrepancy
@@ -22,6 +22,9 @@ class QuasiRandom(UpdatableMixin):
         space: The search space to explore with only discrete dimensions. The
             search space can be either a dictionary or a
             :class:`chocolate.Space` instance.
+        clear_db: If set to :data:`True` and a conflict arise between the
+            provided space and the space in the database, completely clear the
+            database and insert set the space to the provided one.
         random_state: An object to initialize the sequencer with or
             :data:`None` in which case the global state is used. This argument
             is ignored if :data:`permutations` if provided.
@@ -32,8 +35,8 @@ class QuasiRandom(UpdatableMixin):
             point is sampled.
 
     """
-    def __init__(self, connection, space, random_state=None, permutations=None, skip=0):
-        super(QuasiRandom, self).__init__(connection, space)
+    def __init__(self, connection, space, clear_db=False, random_state=None, permutations=None, skip=0):
+        super(QuasiRandom, self).__init__(connection, space, clear_db)
         self.skip = skip
         if permutations == "ea":
             self.seq = ghalton.GeneralizedHalton(ghalton.EA_PERMS[:len(self.space)])

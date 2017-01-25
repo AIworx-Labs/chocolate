@@ -155,6 +155,42 @@ class TestSpace(unittest.TestCase):
         self.assertNotIn("aa", res)
         self.assertNotIn("bb", res)
 
+    def test_equal(self):
+        s1 = {"a" : uniform(1, 2),
+              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
+                     "d" : {"d1" : quantized_log(0, 5, 1, 2)}}}
+
+        s2 = {"a" : uniform(1, 2),
+              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
+                     "d" : {"d1" : quantized_log(0, 5, 1, 2)}}}
+
+        self.assertEqual(Space(s1), Space(s2))
+
+    def test_not_equal(self):
+        s1 = {"a" : uniform(1, 2),
+              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
+                     "d" : {"d1" : quantized_log(0, 5, 1, 2)}}}
+
+        s2 = {"a" : uniform(1, 2),
+              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
+                     "d" : {"d2" : quantized_log(0, 5, 1, 2)}}}
+
+        s3 = {"a" : uniform(1, 2),
+              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
+                     "d" : {"d1" : quantized_log(0, 5, 1, 8)}}}
+
+        self.assertNotEqual(Space(s1), Space(s2))
+        self.assertNotEqual(Space(s1), Space(s3))
+
+    def test_invalid_parameter_name(self):
+        s1 = {"" : uniform(1, 2)}
+        s2 = {"a" : uniform(1, 2),
+              "b" : {"c" : {"" : quantized_log(0, 5, 1, 10)},
+                     "d" : {"d1" : quantized_log(0, 5, 1, 2)}}}
+
+        self.assertRaises(RuntimeError, Space, s1)
+        self.assertRaises(RuntimeError, Space, s2)
+
     def test_uniform(self):
         low, high = 0.01, 0.1
         dist = uniform(low, high)
@@ -163,6 +199,9 @@ class TestSpace(unittest.TestCase):
         self.assertAlmostEqual(dist(0.5), 0.5 * (high - low) + low)
         self.assertAlmostEqual(dist(0.999), 0.999 * (high - low) + low)
 
+    def test_invalid_uniform(self):
+        low, high = 1, 0
+        self.assertRaises(AssertionError, uniform, low, high)
 
     def test_quantized_uniform(self):
         low, high, step = 0.01, 0.1, 0.02
@@ -175,12 +214,19 @@ class TestSpace(unittest.TestCase):
 
         n_steps = (high - low) / step
         stop = numpy.ceil(n_steps) / n_steps
-        target = numpy.linspace(0, stop, num=numpy.ceil(n_steps), endpoint=False)
+        target = numpy.linspace(0, stop, num=int(numpy.ceil(n_steps)), endpoint=False)
         for i, (t, it) in enumerate(zip(target, list(dist))):
             self.assertAlmostEqual(t, it)
             self.assertAlmostEqual(t, dist[i])
 
         self.assertEqual(5, len(dist))
+
+    def test_invalid_quantized_uniform(self):
+        low, high, step = 1, 0, 1
+        self.assertRaises(AssertionError, quantized_uniform, low, high, step)
+
+        low, high, step = 0, 1, 0
+        self.assertRaises(AssertionError, quantized_uniform, low, high, step)
 
     def test_log(self):
         low, high, base = 1, 10, 2
@@ -192,6 +238,16 @@ class TestSpace(unittest.TestCase):
         self.assertAlmostEqual(dist(0.5), 2**(0.5 * (high - low) + low))
         # 2^(0.999 * (high - low) + low)
         self.assertAlmostEqual(dist(0.999), 2**(0.999 * (high - low) + low))
+
+    def test_invalid_log(self):
+        low, high, base = 10, 1, 2
+        self.assertRaises(AssertionError, log, low, high, base)
+
+        low, high, base = 0, 10, 0
+        self.assertRaises(AssertionError, log, low, high, base)
+
+        low, high, base = 0, 10, 1
+        self.assertRaises(AssertionError, log, low, high, base)
 
 
     def test_quantized_log(self):
@@ -205,12 +261,25 @@ class TestSpace(unittest.TestCase):
 
         n_steps = (high - low) / step
         stop = numpy.ceil(n_steps) / n_steps
-        target = numpy.linspace(0, stop, num=numpy.ceil(n_steps), endpoint=False)
+        target = numpy.linspace(0, stop, num=int(numpy.ceil(n_steps)), endpoint=False)
         for i, (t, it) in enumerate(zip(target, list(dist))):
             self.assertAlmostEqual(t, it)
             self.assertAlmostEqual(t, dist[i])
 
         self.assertEqual(3, len(dist))
+
+    def test_invalid_quantized_log(self):
+        low, high, step, base = 10, 1, 2, 10
+        self.assertRaises(AssertionError, quantized_log, low, high, step, base)
+
+        low, high, step, base = 0, 10, 0, 10
+        self.assertRaises(AssertionError, quantized_log, low, high, step, base)
+
+        low, high, step, base = 0, 10, 1, 0
+        self.assertRaises(AssertionError, quantized_log, low, high, step, base)
+
+        low, high, step, base = 0, 10, 1, 1
+        self.assertRaises(AssertionError, quantized_log, low, high, step, base)
 
     def test_choice(self):
         data = ["a", 2, Obj1, [1,2,3]]
@@ -227,3 +296,10 @@ class TestSpace(unittest.TestCase):
             self.assertAlmostEqual(t, dist[i])
 
         self.assertEqual(4, len(dist))
+
+    def test_invalid_choices(self):
+        self.assertRaises(AssertionError, choice, [])
+
+    def test_invalid_choices_call(self):
+        dist = choice([1, 2, 3])
+        self.assertRaises(AssertionError, dist, 1)

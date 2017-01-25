@@ -1,5 +1,6 @@
 
 from contextlib import contextmanager
+import pickle
 import re
 import time
 
@@ -19,14 +20,18 @@ class MongoDBConnection(Connection):
         complementary_col: Collection used to store complementary information
             necessary to the optimizer.
     """
-    def __init__(self, url, database="chocolate", result_col="results", complementary_col="complementary"):
+    def __init__(self, url, database="chocolate", result_col="results", complementary_col="complementary", space_col="space"):
         if not MongoClient:
             raise 
         
         self.client = MongoClient(url)
         self.db = self.client[database]
-        self.results = self.db[result_col]
-        self.complementary = self.db[complementary_col]
+        self.result_collection_name = result_col
+        self.complementary_collection_name = complementary_col
+        self.space_collection_name = space_col
+        self.results = self.db[self.result_collection_name]
+        self.complementary = self.db[self.complementary_collection_name]
+        self.space = self.db[self.space_collection_name]
         self._lock = self.db.lock
 
     @contextmanager
@@ -81,6 +86,12 @@ class MongoDBConnection(Connection):
         """
         return list(self.results.find())
 
+    def find_results(self, filter):
+        """Get a list of all results associated with *filter*. The order is
+        undefined.
+        """
+        return list(self.results.find(filter))
+
     def insert_result(self, document):
         """Insert a new *document* in the result table.
         """
@@ -115,3 +126,36 @@ class MongoDBConnection(Connection):
         """Find a document from the complementary information table.
         """
         return self.complementary.find_one(filter)
+
+    def get_space(self):
+        """Returns the space used for previous experiments.
+
+        Raises:
+            AssertionError: If there are more than one space in the database.
+        """
+        entry_count = self.space.count()
+        if entry_count == 0:
+            return None
+
+        assert entry_count == 1, ("Space table unexpectedly contains more than one space.")
+        return pickle.loads(self.space.find_one()["space"])
+
+    def insert_space(self, space):
+        """Insert a space in the database.
+
+        Raises:
+            AssertionError: If a space is already present in the database.
+        """
+        assert self.space.count() == 0, ("Space table cannot contain more than one space, "
+            "clear table first.")
+        return self.space.insert_one({"space" : pickle.dumps(space)})
+
+    def clear(self):
+        """Clear all data from the database.
+        """
+        self.results.drop()
+        self.complementary.drop()
+        self.space.drop()
+        self.results = self.db[self.result_collection_name]
+        self.complementary = self.db[self.complementary_collection_name]
+        self.space = self.db[self.space_collection_name]

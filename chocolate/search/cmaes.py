@@ -4,10 +4,10 @@ from operator import itemgetter
 
 import numpy
 
-from ..base import UpdatableMixin
+from ..base import SearchAlgorithmMixin
 
 # TODO: Use self random state
-class CMAES(UpdatableMixin):
+class CMAES(SearchAlgorithmMixin):
     """Covariance Matrix Adaptation Evolution Strategy optimization method.
 
     A CMA-ES strategy that combines the :math:`(1 + \\lambda)` paradigm
@@ -23,6 +23,9 @@ class CMAES(UpdatableMixin):
     Args:
         connection: A database connection object.
         space: the search space to explore with only discrete dimensions.
+        clear_db: If set to :data:`True` and a conflict arise between the
+            provided space and the space in the database, completely clear the
+            database and insert set the space to the provided one.
         random_state: An instance of :class:`~numpy.random.RandomState`, an
             object to initialize the internal random state with, or None, in
             which case the global numpy random state is used.
@@ -64,8 +67,8 @@ class CMAES(UpdatableMixin):
     .. [Arnold2012] Arnold and Hansen. A (1+1)-CMA-ES for Constrained
         Optimisation. 2012
     """
-    def __init__(self, connection, space, random_state=None, **params):
-        super(CMAES, self).__init__(connection, space)
+    def __init__(self, connection, space, clear_db=False, random_state=None, **params):
+        super(CMAES, self).__init__(connection, space, clear_db)
         self.params = params
 
         if isinstance(random_state, numpy.random.RandomState):

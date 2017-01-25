@@ -36,17 +36,38 @@ class Connection(object):
     def get_space(self):
         raise NotImplementedError
 
-    def insert_space(self):
+    def insert_space(self, space):
         raise NotImplementedError
 
-class UpdatableMixin(object):
-    def __init__(self, connection, space):
-        if isinstance(space, Space):
-            self.space = space
-        else:
-            self.space = Space(space)
-        
+    def clear(self):
+        raise NotImplementedError
+
+class SearchAlgorithmMixin(object):
+    def __init__(self, connection, space=None, clear_db=False):
+        if space is not None and not isinstance(space, Space):
+            space = Space(space)
+
         self.conn = connection
+        with self.conn.lock():
+            db_space = self.conn.get_space()
+            print(db_space)
+
+            if space is None and db_space is None:
+                raise RuntimeError("The database does not contain any space, please provide one through"
+                    "the 'space' argument")
+            elif space is not None and space != db_space and clear_db is False:
+                raise RuntimeError("The provided space and database space are different. To overwrite"
+                    "the space contained in the database set the 'clear_db' argument")
+            elif space is not None and space != db_space and clear_db is True:
+                self.conn.clear()
+                self.conn.insert_space(space)
+            elif space is not None and db_space is None:
+                self.conn.insert_space(space)
+            elif space is None and db_dpace is not None:
+                space = db_space
+
+        self.space = db_space
+
 
     def update(self, token, values):
         """Update the loss of the parameters associated with *token*.
