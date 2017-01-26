@@ -677,7 +677,9 @@ class Space(object):
         return branches, indices
 
     def __eq__(self, other):
-        return self.spaces == other.spaces
+        if isinstance(other, Space):
+            return self.spaces == other.spaces
+        return False
 
 
 if __name__ == "__main__":
