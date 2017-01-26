@@ -50,8 +50,7 @@ class SearchAlgorithmMixin(object):
         self.conn = connection
         with self.conn.lock():
             db_space = self.conn.get_space()
-            print(db_space)
-
+            print
             if space is None and db_space is None:
                 raise RuntimeError("The database does not contain any space, please provide one through"
                     "the 'space' argument")
