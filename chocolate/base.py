@@ -1,6 +1,8 @@
 
 from collections import Mapping, Sequence
 
+import pandas
+
 from .space import Space 
 
 class Connection(object):
@@ -41,6 +43,22 @@ class Connection(object):
 
     def clear(self):
         raise NotImplementedError
+
+    def results_as_dataframe(self):
+        s = self.get_space()
+        all_results = []
+        for r in self.all_results():
+            #result_as_dict = {k: r[k] for k in s.names()}
+            result = s([r[k] for k in s.names()])
+            if "_loss" in r:
+                result['loss'] = r['_loss']
+            result["id"] = r["_chocolate_id"]
+            all_results.append(result)
+
+        df = pandas.DataFrame.from_dict(all_results)
+        df.index = df.id
+        df.drop("id", inplace=True, axis=1)
+        return df
 
 class SearchAlgorithmMixin(object):
     def __init__(self, connection, space=None, clear_db=False):
