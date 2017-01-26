@@ -145,12 +145,14 @@ class CMAES(SearchAlgorithmMixin):
             if self.parent is None and len(ancestors) > 0:
                 self.parent = next((a for a in ancestors if a["loss"]), None)
 
+            # Generate the next point
+            token = {"_chocolate_id" : self.conn.count_results()}
+
             # If the parent is still None, no information available 
             if self.parent is None:
                 # out = numpy.ones(self.dim) / 2.0
                 out = numpy.random.rand(self.dim)
-                token = {"_chocolate_id" : 0}
-
+                
                 # Signify the first point to others using loss set to None
                 # Transform to dict with parameter names
                 entry = {str(k) : v for k, v in zip(self.space.names(), out)}
@@ -175,9 +177,6 @@ class CMAES(SearchAlgorithmMixin):
                     self.lambda_ = len(group)
                     self._configure()       # Adjust constants that depends on lambda
                     self._update_internals(group)
-            
-                # Generate the next point
-                token = {"_chocolate_id" : self.conn.count_results()}
 
                 invalid = 1
                 while invalid > 0:
