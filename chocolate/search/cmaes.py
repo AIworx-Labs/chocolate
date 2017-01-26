@@ -7,7 +7,6 @@ import numpy
 from ..base import SearchAlgorithmMixin
 
 # TODO: Use self random state
-# TODO: Bootstrap with points without complementary
 class CMAES(SearchAlgorithmMixin):
     """Covariance Matrix Adaptation Evolution Strategy optimization method.
 
@@ -110,10 +109,6 @@ class CMAES(SearchAlgorithmMixin):
                     candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
                     candidate["loss"] = results[c["_chocolate_id"]]["_loss"]
 
-                if c["_invalid"] > 0 or candidate["loss"] is not None:
-                    # The individual will be included in the updates
-                    ancestor_id = candidate["chocolate_id"]
-
                 ancestors.append(candidate)
                 ancestors_ids.add(candidate["chocolate_id"])
 
@@ -148,7 +143,7 @@ class CMAES(SearchAlgorithmMixin):
             # If the parent is still None and ancestors are available
             # set the parent to the first evaluated candidate if any
             if self.parent is None and len(ancestors) > 0:
-                self.parent = next((a for a in ancestor if a["loss"]), None)
+                self.parent = next((a for a in ancestors if a["loss"]), None)
 
             # If the parent is still None, no information available 
             if self.parent is None:
@@ -189,6 +184,11 @@ class CMAES(SearchAlgorithmMixin):
                     # Generate a single candidate at a time
                     self.lambda_ = 1
                     self._configure()
+
+                    # The ancestor id is the last candidate that participated in the
+                    # covariance matrix update
+                    ancestor_id = next((a["chocolate_id"] for a in reversed(bootstrap + ancestors) if a["loss"] or a["invalid"] > 0), None)
+                    assert ancestor_id is not None, "Invalid ancestor id"
 
                     out, y = self._generate()
 
@@ -269,11 +269,11 @@ class CMAES(SearchAlgorithmMixin):
             cmu = mu / len(candidates[0])**2
 
             candidates.sort(key=itemgetter("loss"))
-            c_array = numpy.array(candidates[:mu])
-            cw = numpy.dot(weights, c_array)
+            c_array = numpy.array([c["step"] for c in candidates[:mu]])
+            cw = numpy.sum(weights * c_array.T, axis=1)
 
             self.pc = (1 - self.cc) * self.pc + numpy.sqrt(1 - (1 - self.cc)**2) * numpy.sqrt(mu) * cw
-            self.C = (1 - c1 - cmu) * self.C + c1*numpy.outer(self.pc) + cmu * numpy.outer(cw, c_array)
+            self.C = (1 - c1 - cmu) * self.C + c1 * numpy.outer(self.pc, self.pc) + cmu * numpy.dot(weights * c_array.T, c_array)
 
             self.parent = candidates[0]
 
