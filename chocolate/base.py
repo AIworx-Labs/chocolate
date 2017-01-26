@@ -83,7 +83,8 @@ class SearchAlgorithmMixin(object):
 
             elif space is not None and db_space is None:
                 self.conn.insert_space(space)
-            elif space is None and db_dpace is not None:
+            
+            elif space is None and db_space is not None:
                 space = db_space
 
         self.space = db_space
@@ -112,6 +113,7 @@ class SearchAlgorithmMixin(object):
 
         with self.conn.lock():
             if len(values) > 1:
+                raise NotImplementedError("Cross-validation is not yet supported in DB")
                 orig = self.conn.find_results(token)[0]
                 orig = {k: orig[k] for k in self.space.column_names()}
 
