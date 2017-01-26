@@ -7,6 +7,7 @@ import numpy
 from ..base import SearchAlgorithmMixin
 
 # TODO: Use self random state
+# TODO: Bootstrap with points without complementary
 class CMAES(SearchAlgorithmMixin):
     """Covariance Matrix Adaptation Evolution Strategy optimization method.
 
@@ -89,9 +90,70 @@ class CMAES(SearchAlgorithmMixin):
         self._init()
 
         with self.conn.lock():
-            # First sample is at the dead center of the distribution
-            if self.conn.count_results() == 0:
-                out = numpy.ones(self.dim) / 2.0
+            # Check what is available in that database
+            
+            # Get a list of the actual ancestor and the complementary information 
+            # on that ancestor
+            results = {r["_chocolate_id"] : r for r in self.conn.all_results()}
+            
+            ancestors = list()
+            ancestors_ids = set()
+            for c in sorted(self.conn.all_complementary(), key=itemgetter("_chocolate_id")):
+                candidate = dict()
+                candidate["step"] = numpy.array([c[str(k)] for k in self.space.names()])
+                candidate["chocolate_id"] = c["_chocolate_id"]
+                candidate["ancestor_id"] = c["_ancestor_id"]
+                candidate["invalid"] = c["_invalid"]
+                candidate["loss"] = None
+                
+                if c["_invalid"] == 0:
+                    candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
+                    candidate["loss"] = results[c["_chocolate_id"]]["_loss"]
+
+                if c["_invalid"] > 0 or candidate["loss"] is not None:
+                    # The individual will be included in the updates
+                    ancestor_id = candidate["chocolate_id"]
+
+                ancestors.append(candidate)
+                ancestors_ids.add(candidate["chocolate_id"])
+
+            # Find individuals produced by another algorithm
+            bootstrap = list()
+            for _, c in sorted(results.items()):
+                # Skip those included in ancestors
+                if c["_chocolate_id"] in ancestors_ids:
+                    continue
+
+                candidate = dict()
+                # The initial distribution is assumed uniform and centred on 0.5^n
+                candidate["step"] = numpy.array([c[str(k)] - 0.5 for k in self.space.names()])
+                candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
+                candidate["chocolate_id"] = c["_chocolate_id"]
+                candidate["ancestor_id"] = -1
+                # Compute constraint violation
+                candidate["invalid"] = sum(2**(2*i) for i, xi in enumerate(candidate["X"]) if xi < 0)
+                candidate["invalid"] += sum(2**(2*i+1) for i, xi in enumerate(candidate["X"]) if xi >= 1)
+                candidate["loss"] = None
+
+                if candidate["invalid"] == 0:
+                    candidate["loss"] = c["_loss"]
+        
+
+                bootstrap.append(candidate)
+
+            # Rank-mu update on individuals created from another algorithm
+            self._bootstrap(bootstrap)
+            # _bootstrab sets the parent if enough candidates are available (>= 4)
+
+            # If the parent is still None and ancestors are available
+            # set the parent to the first evaluated candidate if any
+            if self.parent is None and len(ancestors) > 0:
+                self.parent = next((a for a in ancestor if a["loss"]), None)
+
+            # If the parent is still None, no information available 
+            if self.parent is None:
+                # out = numpy.ones(self.dim) / 2.0
+                out = numpy.random.rand(self.dim)
                 token = {"_chocolate_id" : 0}
 
                 # Signify the first point to others using loss set to None
@@ -104,38 +166,13 @@ class CMAES(SearchAlgorithmMixin):
                 # Add the step to the complementary table
                 # Transform to dict with parameter names
                 entry = {str(k) : v for k, v in zip(self.space.names(), out)}
-                entry.update(_ancestor_id=-1, _invalid=0, **token)
+                entry.update(_ancestor_id=-1, _invalid=0, _search_algo="cmaes", **token)
                 self.conn.insert_complementary(entry)
 
                 # return the true parameter set
                 return token, self.space(out)
 
             else:
-                # Get a list of the actual ancestor and the complementary information 
-                # on that ancestor
-                results = {r["_chocolate_id"] : r for r in self.conn.all_results()}
-                
-                ancestors = list()
-                for c in sorted(self.conn.all_complementary(), key=itemgetter("_chocolate_id")):
-                    candidate = dict()
-                    candidate["step"] = numpy.array([c[str(k)] for k in self.space.names()])
-                    candidate["chocolate_id"] = c["_chocolate_id"]
-                    candidate["ancestor_id"] = c["_ancestor_id"]
-                    candidate["invalid"] = c["_invalid"]
-                    if c["_invalid"] == 0:
-                        candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
-                        candidate["loss"] = results[c["_chocolate_id"]]["_loss"]
-                    else:
-                        candidate["loss"] = None
-
-                    if c["_invalid"] > 0 or candidate["loss"] is not None:
-                        # The individual will be included in the updates
-                        ancestor_id = candidate["chocolate_id"]
-
-                    ancestors.append(candidate)
-
-                self.parent = ancestors[0]
-
                 # Simulate the CMA-ES update for each ancestor.
                 for key, group in groupby(ancestors[1:], key=itemgetter("ancestor_id")):
                     # If the loss for this entry is not yet availabe, don't include it
@@ -162,7 +199,7 @@ class CMAES(SearchAlgorithmMixin):
                     # Add the step to the complementary table
                     # Transform to dict with parameter names
                     entry = {str(k) : v for k, v in zip(self.space.names(), y)}
-                    entry.update(_ancestor_id=ancestor_id, _invalid=invalid, **token)
+                    entry.update(_ancestor_id=ancestor_id, _invalid=invalid, _search_algo="cmaes", **token)
                     self.conn.insert_complementary(entry)
 
                 # Signify next point to others using loss set to None
@@ -176,6 +213,7 @@ class CMAES(SearchAlgorithmMixin):
                 return token, self.space(out)
 
     def _init(self):
+        self.parent = None
         self.sigma = 0.2
         self.dim = len(self.space)
 
@@ -214,9 +252,86 @@ class CMAES(SearchAlgorithmMixin):
         if self.update_count == 0:
             self.psucc = self.ptarg
 
-    def _update_internals(self, successors):
+    def _bootstrap(self, candidates):
+        # Active covariance update for invalid individuals
+        self._process_invalids(candidates)
+
+        # Remove invalids and not evaluated
+        candidates = [c for c in candidates if c["invalid"] == 0 and c["loss"] is not None]
+
+        # Rank-mu update
+        if len(candidates) >= 4:
+            mu = int(len(candidates) / 2)
+            # superlinear weights (the usual default)
+            weights = weights = numpy.log(mu + 0.5) - numpy.log(numpy.arange(1, mu + 1))
+            weights /= sum(weights)
+            c1 = 2 / len(candidates[0])**2
+            cmu = mu / len(candidates[0])**2
+
+            candidates.sort(key=itemgetter("loss"))
+            c_array = numpy.array(candidates[:mu])
+            cw = numpy.dot(weights, c_array)
+
+            self.pc = (1 - self.cc) * self.pc + numpy.sqrt(1 - (1 - self.cc)**2) * numpy.sqrt(mu) * cw
+            self.C = (1 - c1 - cmu) * self.C + c1*numpy.outer(self.pc) + cmu * numpy.outer(cw, c_array)
+
+            self.parent = candidates[0]
+
+
+    def _update_internals(self, candidates):
+        assert self.parent is not None and "loss" in self.parent and self.parent["loss"] is not None, "Invalid parent in CMA-ES internal update."
+
+        # Active covariance update for invalid individuals
+        self._process_invalids(candidates)
+
+        # Remove invalids and not evaluated
+        candidates = [s for s in candidates if s["invalid"] == 0 and s["loss"] is not None]
+
+        # Is the new point better than the parent?
+        candidates.sort(key=itemgetter("loss"))
+        lambda_succ = sum(s["loss"] <= self.parent["loss"] for s in candidates)
+        p_succ = float(lambda_succ) / self.lambda_
+        self.psucc = (1 - self.cp) * self.psucc + self.cp * p_succ
+
+        # On success update the matrices C, A == B*D and evolution path
+        if candidates[0]["loss"] <= self.parent["loss"]:
+            self.parent = candidates[0].copy()
+            if self.psucc < self.pthresh:
+                self.pc = (1 - self.cc) * self.pc + numpy.sqrt(self.cc * (2 - self.cc)) * candidates[0]["step"]
+                self.C = (1 - self.ccovp) * self.C + self.ccovp * numpy.outer(self.pc, self.pc)
+            else:
+                self.pc = (1 - self.cc) * self.pc
+                self.C = (1 - self.ccovp) * self.C + self.ccovp * (numpy.outer(self.pc, self.pc) + self.cc * (2 - self.cc) * self.C)
+
+            self.A = numpy.linalg.cholesky(self.C)
+        
+        elif len(self.ancestors) >= 5 and candidates[0]["loss"] > sorted(s["loss"] for s in self.ancestors)[-1]:
+            # Active negative covariance update
+            z = numpy.dot(numpy.linalg.inv(self.A), candidates[0]["step"])
+            n_z2 = numpy.linalg.norm(z)**2
+            if 1 - self.ccovn * n_z2 / (1 + self.ccovn) < 0.5:
+                ccovn = 1 / (2 * numpy.linalg.norm(z)**2 - 1)
+            else:
+                ccovn = self.ccovn
+            self.A = numpy.sqrt(1 + ccovn) * self.A + numpy.sqrt(1 + ccovn) / n_z2 * (numpy.sqrt(1 - ccovn * n_z2 / (1 + ccovn)) - 1) * numpy.dot(self.A, numpy.outer(z, z))
+            self.C = numpy.dot(self.A, self.A.T)    # Yup we still have an update o C
+            
+
+        # Keep a list of ancestors sorted by order of appearance
+        self.ancestors.insert(0, candidates[0])
+        if len(self.ancestors) > 5:
+            self.ancestors.pop(-1)
+        
+        # Update the step size
+        self.sigma = self.sigma * numpy.exp(1.0 / self.d * (self.psucc - self.ptarg) / (1 - self.ptarg))
+
+        # Update the dimensions where integer mutation is needed
+        self.i_I_R = numpy.flatnonzero(2 * self.sigma * numpy.diag(self.C)**0.5 < self.S_int)
+        self.update_count += 1
+
+    def _process_invalids(self, candidates):
         # Process all invalid individuals
-        for s in successors:
+        for s in candidates:
             if s["invalid"] > 0:
                 sum_vw = 0
                 invalid_count = 0
@@ -234,52 +349,6 @@ class CMAES(SearchAlgorithmMixin):
                 # Update A and make changes in C since in next updates we use C
                 self.A = self.A - (self.beta / invalid_count) * sum_vw
                 self.C = numpy.dot(self.A, self.A.T)
-
-        # Remove invalids and not evaluated
-        successors = [s for s in successors if s["invalid"] == 0 and s["loss"] is not None]
-
-        if "loss" in self.parent and self.parent["loss"] is not None:
-            # Is the new point better than the parent?
-            successors.sort(key=itemgetter("loss"))
-            lambda_succ = sum(s["loss"] <= self.parent["loss"] for s in successors)
-            p_succ = float(lambda_succ) / self.lambda_
-            self.psucc = (1 - self.cp) * self.psucc + self.cp * p_succ
-
-            # On success update the matrices C, A == B*D and evolution path
-            if successors[0]["loss"] <= self.parent["loss"]:
-                self.parent = successors[0].copy()
-                if self.psucc < self.pthresh:
-                    self.pc = (1 - self.cc) * self.pc + numpy.sqrt(self.cc * (2 - self.cc)) * successors[0]["step"]
-                    self.C = (1 - self.ccovp) * self.C + self.ccovp * numpy.outer(self.pc, self.pc)
-                else:
-                    self.pc = (1 - self.cc) * self.pc
-                    self.C = (1 - self.ccovp) * self.C + self.ccovp * (numpy.outer(self.pc, self.pc) + self.cc * (2 - self.cc) * self.C)
-
-                self.A = numpy.linalg.cholesky(self.C)
-            
-            elif len(self.ancestors) >= 5 and successors[0]["loss"] > sorted(s["loss"] for s in self.ancestors)[-1]:
-                # Active negative covariance update
-                z = numpy.dot(numpy.linalg.inv(self.A), successors[0]["step"])
-                n_z2 = numpy.linalg.norm(z)**2
-                if 1 - self.ccovn * n_z2 / (1 + self.ccovn) < 0.5:
-                    ccovn = 1 / (2 * numpy.linalg.norm(z)**2 - 1)
-                else:
-                    ccovn = self.ccovn
-                self.A = numpy.sqrt(1 + ccovn) * self.A + numpy.sqrt(1 + ccovn) / n_z2 * (numpy.sqrt(1 - ccovn * n_z2 / (1 + ccovn)) - 1) * numpy.dot(self.A, numpy.outer(z, z))
-                self.C = numpy.dot(self.A, self.A.T)    # Yup we still have an update o C
-                
-
-            # Keep a list of ancestors sorted by order of appearance
-            self.ancestors.insert(0, successors[0])
-            if len(self.ancestors) > 5:
-                self.ancestors.pop(-1)
-            
-            # Update the step size
-            self.sigma = self.sigma * numpy.exp(1.0 / self.d * (self.psucc - self.ptarg) / (1 - self.ptarg))
-
-            # Update the dimensions where integer mutation is needed
-            self.i_I_R = numpy.flatnonzero(2 * self.sigma * numpy.diag(self.C)**0.5 < self.S_int)
-            self.update_count += 1
 
     def _generate(self):
         n_I_R = self.i_I_R.shape[0]
