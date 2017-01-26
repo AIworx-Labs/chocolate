@@ -54,14 +54,18 @@ class SearchAlgorithmMixin(object):
             if space is None and db_space is None:
                 raise RuntimeError("The database does not contain any space, please provide one through"
                     "the 'space' argument")
-            elif space is not None and space != db_space and clear_db is False:
-                raise RuntimeError("The provided space and database space are different. To overwrite "
-                    "the space contained in the database set the 'clear_db' argument")
-            elif space is not None and space != db_space and clear_db is True:
-                self.conn.clear()
-                self.conn.insert_space(space)
+            
+            elif space is not None and db_space is not None:
+                if space != db_space and clear_db is False:
+                    raise RuntimeError("The provided space and database space are different. To overwrite "
+                        "the space contained in the database set the 'clear_db' argument")
+                elif space != db_space and clear_db is True:
+                    self.conn.clear()
+                    self.conn.insert_space(space)
+
             elif space is not None and db_space is None:
                 self.conn.insert_space(space)
+            
             elif space is None and db_dpace is not None:
                 space = db_space
 
