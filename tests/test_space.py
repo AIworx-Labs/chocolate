@@ -170,7 +170,7 @@ class TestSpace(unittest.TestCase):
 
         self.assertEqual(Space(s1), Space(s2))
 
-    def test_equal(self):
+    def test_equal_None(self):
         s1 = {"a" : uniform(1, 2),
               "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
                      "d" : {"d1" : quantized_log(0, 5, 1, 2)}}}
