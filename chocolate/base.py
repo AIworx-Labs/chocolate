@@ -87,7 +87,7 @@ class SearchAlgorithmMixin(object):
             elif space is None and db_space is not None:
                 space = db_space
 
-        self.space = db_space
+        self.space = space
 
 
     def update(self, token, values):
