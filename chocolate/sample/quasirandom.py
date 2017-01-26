@@ -25,7 +25,7 @@ class QuasiRandom(SearchAlgorithmMixin):
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
             database and insert set the space to the provided one.
-        random_state: An object to initialize the sequencer with or
+        random_state: An integer used as seed to initialize the sequencer with or
             :data:`None` in which case the global state is used. This argument
             is ignored if :data:`permutations` if provided.
         permutations: Either, the string ``"ea"`` in which case the
@@ -42,8 +42,11 @@ class QuasiRandom(SearchAlgorithmMixin):
             self.seq = ghalton.GeneralizedHalton(ghalton.EA_PERMS[:len(self.space)])
         elif permutations is not None:
             self.seq = ghalton.GeneralizedHalton(permutations)
-        else:
+        elif random_state is not None:
             self.seq = ghalton.GeneralizedHalton(len(self.space), random_state)
+        else:
+            self.seq = ghalton.GeneralizedHalton(len(self.space))
+            
 
         self.drawn = 0
 
