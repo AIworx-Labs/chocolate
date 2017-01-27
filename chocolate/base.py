@@ -60,7 +60,7 @@ class Connection(object):
         df.drop("id", inplace=True, axis=1)
         return df
 
-class SearchAlgorithmMixin(object):
+class SearchAlgorithm(object):
     def __init__(self, connection, space=None, clear_db=False):
         if space is not None and not isinstance(space, Space):
             space = Space(space)
