@@ -53,18 +53,21 @@ class SQLiteConnection(Connection):
         else:
             raise RuntimeError("Cannot find sqlite db path in {}".format(url))
 
-        self.db = dataset.connect(url)
-        self.result_table_name = result_table
-        self.complementary_table_name = complementary_table
-        self.space_table_name = space_table
-        self.results = self.db[self.result_table_name]
-        # Initializing with None turns a column into str,
-        # ensure float for loss
-        self.results.create_column("_loss", sqlalchemy.Float)
-        
-        self.complementary = self.db[self.complementary_table_name]
-        self.space = self.db[self.space_table_name]
         self._lock = filelock.FileLock("{}.lock".format(db_path))
+
+        with self.lock():
+            self.db = dataset.connect(url)
+            self.result_table_name = result_table
+            self.complementary_table_name = complementary_table
+            self.space_table_name = space_table
+            self.results = self.db[self.result_table_name]
+            # Initializing with None turns a column into str,
+            # ensure float for loss
+            self.results.create_column("_loss", sqlalchemy.Float)
+            
+            self.complementary = self.db[self.complementary_table_name]
+            self.space = self.db[self.space_table_name]
+        
 
     @contextmanager
     def lock(self, timeout=-1, poll_interval=0.05):
