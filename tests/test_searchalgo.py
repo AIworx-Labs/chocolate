@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from chocolate.space import *
-from chocolate.base import SearchAlgorithmMixin
+from chocolate.base import SearchAlgorithm
 
 class TestAlgorithmMixin(unittest.TestCase):
     def setUp(self):
@@ -12,21 +12,21 @@ class TestAlgorithmMixin(unittest.TestCase):
 
     def test_space_none_none(self):
         self.mock_conn.get_space.return_value = None
-        self.assertRaises(RuntimeError, SearchAlgorithmMixin, self.mock_conn, None)
+        self.assertRaises(RuntimeError, SearchAlgorithm, self.mock_conn, None)
 
     def test_space_not_equal_nowrite(self):
         s1 = Space({"a" : uniform(1, 2)})
         s2 = Space({"a" : uniform(1, 3)})
         
         self.mock_conn.get_space.return_value = s1
-        self.assertRaises(RuntimeError, SearchAlgorithmMixin, self.mock_conn, s2)
+        self.assertRaises(RuntimeError, SearchAlgorithm, self.mock_conn, s2)
 
     def test_space_not_equal_write(self):
         s1 = Space({"a" : uniform(1, 2)})
         s2 = Space({"a" : uniform(1, 3)})
         
         self.mock_conn.get_space.return_value = s1
-        algo = SearchAlgorithmMixin(self.mock_conn, s2, clear_db=True)
+        algo = SearchAlgorithm(self.mock_conn, s2, clear_db=True)
 
         self.mock_conn.clear.assert_called_with()
         self.mock_conn.insert_space.assert_called_with(s2)
@@ -36,7 +36,7 @@ class TestAlgorithmMixin(unittest.TestCase):
         s1 = Space({"a" : uniform(1, 2)})
         
         self.mock_conn.get_space.return_value = None
-        algo = SearchAlgorithmMixin(self.mock_conn, s1)
+        algo = SearchAlgorithm(self.mock_conn, s1)
 
         self.mock_conn.insert_space.assert_called_with(s1)
         self.assertEqual(algo.space, s1)
@@ -45,13 +45,13 @@ class TestAlgorithmMixin(unittest.TestCase):
         s1 = Space({"a" : uniform(1, 2)})
         
         self.mock_conn.get_space.return_value = s1
-        algo = SearchAlgorithmMixin(self.mock_conn, None)
+        algo = SearchAlgorithm(self.mock_conn, None)
 
         self.assertEqual(algo.space, s1)
 
     def test_update_value(self):
         token = {"a" : 0}
-        algo = SearchAlgorithmMixin(self.mock_conn, None)
+        algo = SearchAlgorithm(self.mock_conn, None)
 
         algo.update(token, 9.0)
 
@@ -60,7 +60,7 @@ class TestAlgorithmMixin(unittest.TestCase):
 
     def test_update_mapping(self):
         token = {"a" : 0}
-        algo = SearchAlgorithmMixin(self.mock_conn, None)
+        algo = SearchAlgorithm(self.mock_conn, None)
 
         algo.update(token, {"_loss" : 9.0})
 

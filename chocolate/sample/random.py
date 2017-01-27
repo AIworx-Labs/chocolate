@@ -1,11 +1,11 @@
 
 import numpy
 
-from ..base import SearchAlgorithmMixin
+from ..base import SearchAlgorithm
 from ..space import ContinuousDistribution
 from .grid import ParameterGrid
 
-class Random(SearchAlgorithmMixin):
+class Random(SearchAlgorithm):
     """Random sampler.
 
     Samples the search space randomly. This sampler will draw random numbers

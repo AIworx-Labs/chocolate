@@ -3,7 +3,7 @@ from itertools import islice
 
 import numpy
 
-from ..base import SearchAlgorithmMixin
+from ..base import SearchAlgorithm
 from ..space import Distribution, ContinuousDistribution
 
 class ParameterGrid(object):
@@ -50,7 +50,7 @@ class ParameterGrid(object):
                 return out
 
 
-class Grid(SearchAlgorithmMixin):
+class Grid(SearchAlgorithm):
     """Regular cartesian grid sampler.
 
     Samples the search space at every point of the grid formed by all

@@ -42,7 +42,7 @@ class Connection(object):
     def clear(self):
         raise NotImplementedError
 
-class SearchAlgorithmMixin(object):
+class SearchAlgorithm(object):
     def __init__(self, connection, space=None, clear_db=False):
         if space is not None and not isinstance(space, Space):
             space = Space(space)

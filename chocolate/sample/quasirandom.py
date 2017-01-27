@@ -1,9 +1,9 @@
 
 import ghalton
 
-from ..base import SearchAlgorithmMixin
+from ..base import SearchAlgorithm
 
-class QuasiRandom(SearchAlgorithmMixin):
+class QuasiRandom(SearchAlgorithm):
     """Quasi-Random sampler.
 
     Samples the search space using the generalized Halton low-discrepancy
