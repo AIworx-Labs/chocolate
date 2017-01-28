@@ -53,20 +53,19 @@ class SQLiteConnection(Connection):
         else:
             raise RuntimeError("Cannot find sqlite db path in {}".format(url))
 
+        self.url = url
+        self.result_table_name = result_table
+        self.complementary_table_name = complementary_table
+        self.space_table_name = space_table
+
         self._lock = filelock.FileLock("{}.lock".format(db_path))
 
         with self.lock():
-            self.db = dataset.connect(url)
-            self.result_table_name = result_table
-            self.complementary_table_name = complementary_table
-            self.space_table_name = space_table
-            self.results = self.db[self.result_table_name]
-            # Initializing with None turns a column into str,
-            # ensure float for loss
-            self.results.create_column("_loss", sqlalchemy.Float)
-            
-            self.complementary = self.db[self.complementary_table_name]
-            self.space = self.db[self.space_table_name]
+            db = dataset.connect(self.url)
+
+            # Initialize a result table and ensure float for loss
+            results = db[self.result_table_name]
+            results.create_column("_loss", sqlalchemy.Float)
         
 
     @contextmanager
@@ -99,20 +98,23 @@ class SQLiteConnection(Connection):
         """Get a list of all entries of the result table. The order is
         undefined.
         """
-        return list(self.results.all())
+        with dataset.connect(self.url) as tx:
+            return list(tx[self.result_table_name].all())
 
     def find_results(self, filter):
         """Get a list of all results associated with *filter*. The order is
         undefined.
         """
-        return list(self.results.find(**filter))
+        with dataset.connect(self.url) as tx:
+            return list(tx[self.result_table_name].find(**filter))
 
     def insert_result(self, document):
         """Insert a new *document* in the result table. The columns must not
         be defined nor all present. Any new column will be added to the
         database and any missing column will get value None.
         """
-        return self.results.insert(document)
+        with dataset.connect(self.url) as tx:
+            return tx[self.result_table_name].insert(document)
 
     def update_result(self, filter, values):
         """Update or add *values* of a given row in the result table.
@@ -124,28 +126,33 @@ class SQLiteConnection(Connection):
         filter = filter.copy()
         keys = list(filter.keys())
         filter.update(values)
-        return self.results.update(filter, keys)
+        with dataset.connect(self.url) as tx:
+            return tx[self.result_table_name].update(filter, keys)
 
     def count_results(self):
         """Get the total number of entries in the result table.
         """
-        return self.results.count()
+        with dataset.connect(self.url) as tx:
+            return tx[self.result_table_name].count()
 
     def all_complementary(self):
         """Get all entries of the complementary information table as a list.
         The order is undefined.
         """
-        return list(self.complementary.all())
+        with dataset.connect(self.url) as tx:
+            return list(tx[self.complementary_table_name].all())
 
     def insert_complementary(self, document):
         """Insert a new document (row) in the complementary information table.
         """
-        return self.complementary.insert(document)
+        with dataset.connect(self.url) as tx:
+            return tx[self.complementary_table_name].insert(document)
 
     def find_complementary(self, filter):
         """Find a document (row) from the complementary information table.
         """
-        return self.complementary.find_one(**filter)
+        with dataset.connect(self.url) as tx:
+            return tx[self.complementary_table_name].find_one(**filter)
 
     def get_space(self):
         """Returns the space used for previous experiments.
@@ -153,12 +160,13 @@ class SQLiteConnection(Connection):
         Raises:
         AssertionError: If there are more than one space in the database.
         """
-        entry_count = self.space.count()
-        if entry_count == 0:
-            return None
+        with dataset.connect(self.url) as tx:
+            entry_count = tx[self.space_table_name].count()
+            if entry_count == 0:
+                return None
 
-        assert entry_count == 1, ("Space table unexpectedly contains more than one space.")
-        return pickle.loads(self.space.find_one()["space"])
+            assert entry_count == 1, ("Space table unexpectedly contains more than one space.")
+            return pickle.loads(tx[self.space_table_name].find_one()["space"])
 
     def insert_space(self, space):
         """Insert a space in the database.
@@ -166,16 +174,17 @@ class SQLiteConnection(Connection):
         Raises:
             AssertionError: If a space is already present in the database.
         """
-        assert self.space.count() == 0, ("Space table cannot contain more than one space, "
-            "clear table first.")
-        return self.space.insert({"space" : pickle.dumps(space)})
+        with dataset.connect(self.url) as tx:
+            assert tx[self.space_table_name].count() == 0, ("Space table cannot contain more than one space, "
+                "clear table first.")
+            return tx[self.space_table_name].insert({"space" : pickle.dumps(space)})
 
     def clear(self):
         """Clear all data from the database.
         """
-        self.results.drop()
-        self.complementary.drop()
-        self.space.drop()
-        self.results = self.db[self.result_table_name]
-        self.complementary = self.db[self.complementary_table_name]
-        self.space = self.db[self.space_table_name]
+        with dataset.connect(self.url) as tx:
+            tx[self.result_table_name].drop()
+            tx[self.complementary_table_name].drop()
+            tx[self.space_table_name].drop()
+            results = tx[self.result_table_name]
+            results.create_column("_loss", sqlalchemy.Float)
