@@ -30,7 +30,9 @@ search space as a list of dictionaries, one for each model. ::
                   "penalty" : choco.choice(["l1", "l2"])}]
 
 Lets now define the optimization function. Since we were able to directly
-define the classifier as algo type we can use that an not duplictate code. ::
+define the classifier type as the parameter ``"algo"`` we can use that directly.
+Note that the F1 score has to be maximized, however, Chocolate always minimizes
+the loss. Thus, we shall return the negative of the F1 score.::
 
     from sklearn.metrics import f1_score
     from sklearn.model_selection import train_test_split
@@ -42,10 +44,10 @@ define the classifier as algo type we can use that an not duplictate code. ::
         clf.fit(X_train, y_train)
         y_pred = clf.predict(X_test)
 
-        return f1_score(y_test, y_pred)
+        return -f1_score(y_test, y_pred)
 
-And just as in the simpler examples, we will load our dataset, make our
-connection and explore the configurations using on of the algorithm ::
+Just as in the simpler examples, we will load our dataset, make our
+connection and explore the configurations using one of the algorithm ::
 
     from sklearn.datasets import make_classification
     X, y = make_classification(n_samples=80000, random_state=1)

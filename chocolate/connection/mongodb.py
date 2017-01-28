@@ -12,13 +12,14 @@ class MongoDBConnection(Connection):
     """Connection to a MongoDB database.
 
     Args:
-        url: Full url to the database including credentials but omiting the
+        url (str): Full url to the database including credentials but omitting the
             database and the collection.
-        database: The database in the MongoDB engine.
-        result_col: Collection used to store the experiences and their
+        database (str): The database name in the MongoDB engine.
+        result_col (str): Collection used to store the experiences and their
             results.
-        complementary_col: Collection used to store complementary information
+        complementary_col (str): Collection used to store complementary information
             necessary to the optimizer.
+        space_table (str): Collection used to save the optimization :class:`Space`.
     """
     def __init__(self, url, database="chocolate", result_col="results", complementary_col="complementary", space_col="space"):
         self.client = MongoClient(url)

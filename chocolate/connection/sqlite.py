@@ -21,7 +21,7 @@ class SQLiteConnection(Connection):
     database just as a list of dictionaries.
 
     Args:
-        url: Full url to the database, as described in the `SQLAlchemy
+        url (str): Full url to the database, as described in the `SQLAlchemy
             documentation
             <http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlite>`_.
             The url is parsed to find the database path. A lock file will be
@@ -29,9 +29,10 @@ class SQLiteConnection(Connection):
             database is used (``url = "sqlite:///"`` or ``url =
             "sqlite:///:memory:"``) a lock file will be created in the current
             working directory.
-        result_table: Table used to store the experiences and their results.
-        complementary_table: Table used to store complementary information necessary
+        result_table (str): Table used to store the experiences and their results.
+        complementary_table (str): Table used to store complementary information necessary
             to the optimizer.
+        space_table (str): Table used to save the optimization :class:`Space`.
     """
     def __init__(self, url, result_table="results", complementary_table="complementary", space_table="space"):
         super(SQLiteConnection, self).__init__()
