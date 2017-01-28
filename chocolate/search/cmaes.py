@@ -280,14 +280,19 @@ class CMAES(SearchAlgorithm):
             self.parent = candidates[0]
 
     def _update_internals(self, candidates):
-        assert self.parent is not None and "loss" in self.parent and self.parent[
-                                                                         "loss"] is not None, "Invalid parent in CMA-ES internal update."
+        assert (self.parent is not None and "loss" in self.parent and self.parent["loss"] is not None,
+                "Invalid parent in CMA-ES internal update.")
 
         # Active covariance update for invalid individuals
         self._process_invalids(candidates)
 
         # Remove invalids and not evaluated
         candidates = [s for s in candidates if s["invalid"] == 0 and s["loss"] is not None]
+
+        print(len(candidates))
+        if len(candidates) == 0:
+            # Empty group, abort
+            return
 
         # Is the new point better than the parent?
         candidates.sort(key=itemgetter("loss"))
