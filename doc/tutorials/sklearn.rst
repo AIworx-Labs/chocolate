@@ -13,9 +13,9 @@ First we'll do the necessary imports ::
 
     import chocolate as choco
 
-And we'll define our train function that returns the `F1 score <http://scikit-
-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html>`_ as loss
-function for our Chocolate optimizer. Nothing fancy here either ::
+And we'll define our train function to return the negative of the
+`F1 score <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html>`_
+as loss function for our Chocolate minimizer. Nothing fancy here ::
 
     def score_gbt(X, y, params):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
@@ -24,7 +24,7 @@ function for our Chocolate optimizer. Nothing fancy here either ::
         gbt.fit(X_train, y_train)
         y_pred = gbt.predict(X_test)
 
-        return f1_score(y_test, y_pred)
+        return -f1_score(y_test, y_pred)
 
 
 Then we will load our dataset (or `make <http://scikit-learn.org/stable/module
