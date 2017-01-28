@@ -106,7 +106,8 @@ todo_include_todos = True
 
 # Search in python documentation
 intersphinx_mapping = {'python' : ('https://docs.python.org/3', None),
-                       'numpy'  : ('http://docs.scipy.org/doc/numpy', None)}
+                       'numpy'  : ('http://docs.scipy.org/doc/numpy', None),
+                       'pandas': ('http://pandas-docs.github.io/pandas-docs-travis/', None)}
 
 # Reload the cached values every 5 days
 intersphinx_cache_limit = 5

@@ -7,6 +7,8 @@ Database Connections
 
 .. autoclass:: SQLiteConnection
 
+   .. automethod:: results_as_dataframe
+
    .. automethod:: lock
 
    .. automethod:: all_results
@@ -30,6 +32,8 @@ Database Connections
    .. automethod:: clear
 
 .. autoclass:: MongoDBConnection
+
+   .. automethod:: results_as_dataframe
 
    .. automethod:: lock
 

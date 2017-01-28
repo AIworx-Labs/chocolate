@@ -45,13 +45,25 @@ class Connection(object):
         raise NotImplementedError
 
     def results_as_dataframe(self):
-        s = self.get_space()
+        """Compile all the results and transform them using the space specified in the database. It is safe to
+        use this method while other experiments are still writing to the database.
+
+        Returns:
+            :class:`pandas.DataFrame`: A DataFrame containing all results with the ``"_chocolate_id"`` as ``"id"``,
+            their parameters set to their mangled names and the loss. Pending results have a loss of :data:`None`.
+        """
+        with self.lock():
+            s = self.get_space()
+            results = self.all_results()
+
         all_results = []
-        for r in self.all_results():
+        for r in results:
             #result_as_dict = {k: r[k] for k in s.names()}
             result = s([r[k] for k in s.names()])
             if "_loss" in r:
                 result['loss'] = r['_loss']
+            else:
+                result['loss'] = None
             result["id"] = r["_chocolate_id"]
             all_results.append(result)
 
