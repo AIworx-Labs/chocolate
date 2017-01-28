@@ -290,7 +290,6 @@ class CMAES(SearchAlgorithm):
         # Remove invalids and not evaluated
         candidates = [s for s in candidates if s["invalid"] == 0 and s["loss"] is not None]
 
-        print(len(candidates))
         if len(candidates) == 0:
             # Empty group, abort
             return
