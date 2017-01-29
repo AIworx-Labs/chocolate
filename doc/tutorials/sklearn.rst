@@ -60,5 +60,5 @@ and signify it to the database ::
 
 
 Running this ~20 line script a bunch of times in completely separate processes
-will explore the search space to find a good parameter set for our problem. As
+will explore the search space to find a good parameter set for your problem. As
 simple as that.
