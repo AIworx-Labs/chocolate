@@ -1,6 +1,6 @@
 numpy>=1.11
 pymongo>=3.4
-dataset>=0.7
+dataset>=0.8
 filelock>=2.0
 ghalton>=0.6
 sphinx>=1.5
