@@ -23,23 +23,29 @@ need a function that builds the model. ::
         for i in range(params["num_conv_layers"]):
             with tf.variable_scope("conv_{}".format(i)):
                 # Create layer using input parameters
-                net = layers.convolution2d(net, num_outputs=params["conv_{}_num_outputs".format(i)],
+                net = layers.convolution2d(net,
+                                           num_outputs=params["conv_{}_num_outputs".format(i)],
                                            kernel_size=params["conv_{}_kernel_size".format(i)],
-                                           stride=params["conv_{}_stride".format(i)], padding="SAME",
+                                           stride=params["conv_{}_stride".format(i)],
+                                           padding="SAME",
                                            activation_fn=params["conv_{}_activation_fn".format(i)],
                                            weights_initializer=layers.variance_scaling_initializer(),
                                            biases_initializer=layers.variance_scaling_initializer())
 
-                net = layers.convolution2d(net, num_outputs=params["conv_{}_num_outputs".format(i)],
+                net = layers.convolution2d(net,
+                                           num_outputs=params["conv_{}_num_outputs".format(i)],
                                            kernel_size=params["conv_{}_kernel_size".format(i)],
-                                           stride=params["conv_{}_stride".format(i)], padding="SAME",
+                                           stride=params["conv_{}_stride".format(i)],
+                                           padding="SAME",
                                            activation_fn=params["conv_{}_activation_fn".format(i)],
                                            weights_initializer=layers.variance_scaling_initializer(),
                                            biases_initializer=layers.variance_scaling_initializer())
 
             with tf.variable_scope("mp_{}".format(i)):
-                net = layers.max_pool2d(net, kernel_size=params["mp_{}_kernel_size".format(i)],
-                                        stride=params["mp_{}_stride".format(i)], padding="VALID")
+                net = layers.max_pool2d(net,
+                                        kernel_size=params["mp_{}_kernel_size".format(i)],
+                                        stride=params["mp_{}_stride".format(i)],
+                                        padding="VALID")
 
         # Dropout keep probability is set a train time.
         net = tf.nn.dropout(net, keep_prob=dropout_keep_prob)
@@ -48,7 +54,8 @@ need a function that builds the model. ::
         for i in range(params["num_fc_layers"]):
             with tf.variable_scope("fc_{}".format(i)):
                 # Create layer using input parameters
-                net = fully_connected(net, num_outputs=params["fc_{}_num_outputs".format(i)],
+                net = fully_connected(net,
+                                      num_outputs=params["fc_{}_num_outputs".format(i)],
                                       activation_fn=params["fc_{}_activation_fn".format(i)],
                                       weights_initializer=layers.variance_scaling_initializer(),
                                       biases_initializer=layers.variance_scaling_initializer())
@@ -56,7 +63,9 @@ need a function that builds the model. ::
                 net = tf.nn.dropout(net, keep_prob=dropout_keep_prob)
 
         with tf.variable_scope("output_layer"):
-            net = layers.fully_connected(net, num_outputs=output_shape, activation_fn=tf.identity,
+            net = layers.fully_connected(net,
+                                         num_outputs=output_shape,
+                                         activation_fn=tf.identity,
                                          weights_initializer=layers.variance_scaling_initializer(),
                                          biases_initializer=layers.variance_scaling_initializer())
 
