@@ -9,6 +9,7 @@ Library Reference
    connection
    sample
    search
+   conditional
 
 .. currentmodule:: chocolate
 
@@ -47,3 +48,10 @@ Library Reference
    :nosignatures:
 
    CMAES
+
+.. rubric:: :doc:`conditional`
+
+.. autosummary::
+   :nosignatures:
+
+   ThompsonSampling

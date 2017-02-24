@@ -45,12 +45,12 @@ class SQLiteConnection(Connection):
         if not url.startswith("sqlite://"):
             raise RuntimeError("Missing 'sqlite:///' at the begin of url".format(url))
 
+        if url == "sqlite://" or url == "sqlite:///:memory:":
+            raise RuntimeError("Cannot use memory database as it exists only for the time of the connection")
+
         match = re.search("sqlite:///(.*)", url)
         if match is not None:
             db_path = match.group(1)
-        elif url == "sqlite://" or url == "sqlite:///:memory:":
-            url = "sqlite:///:memory:"
-            db_path = ""
         else:
             raise RuntimeError("Cannot find sqlite db path in {}".format(url))
 
@@ -60,6 +60,7 @@ class SQLiteConnection(Connection):
         self.space_table_name = space_table
 
         self._lock = filelock.FileLock("{}.lock".format(db_path))
+        self.hold_lock = False
 
         with self.lock():
             db = dataset.connect(self.url)
@@ -92,8 +93,13 @@ class SQLiteConnection(Connection):
 
             # The database is unlocked
         """
-        with self._lock.acquire(timeout, poll_interval):
+        if self.hold_lock:
             yield
+        else:
+            with self._lock.acquire(timeout, poll_interval):
+                self.hold_lock = True
+                yield
+                self.hold_lock = False
 
     def all_results(self):
         """Get a list of all entries of the result table. The order is

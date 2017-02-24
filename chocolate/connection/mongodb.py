@@ -31,6 +31,7 @@ class MongoDBConnection(Connection):
         self.complementary = self.db[self.complementary_collection_name]
         self.space = self.db[self.space_collection_name]
         self._lock = self.db.lock
+        self.hold_lock = False
 
     @contextmanager
     def lock(self, timeout=-1, poll_interval=0.05):
@@ -54,29 +55,34 @@ class MongoDBConnection(Connection):
         Raises:
             TimeoutError: Raised if the lock could not be acquired.
         """
-        start_time = time.time()
-        l = self._lock.find_one_and_update({"name" : "lock"},
-                                           {"$set" : {"lock" : True}},
-                                           upsert=True)
-
-        while l is not None and l["lock"] != False and timeout != 0:
-            time.sleep(poll_interval)
+        if self.hold_lock:
+            yield
+        else:
+            start_time = time.time()
             l = self._lock.find_one_and_update({"name" : "lock"},
                                                {"$set" : {"lock" : True}},
                                                upsert=True)
 
-            if time.time() - start_time > timeout:
-                break
-
-        if l is None or l["lock"] == False:
-            # The lock is acquired
-            try:
-                yield
-            finally:
+            while l is not None and l["lock"] != False and timeout != 0:
+                time.sleep(poll_interval)
                 l = self._lock.find_one_and_update({"name" : "lock"},
-                                                   {"$set" : {"lock" : False}})
-        else:
-            raise TimeoutError("Could not acquire MongoDB lock")
+                                                   {"$set" : {"lock" : True}},
+                                                   upsert=True)
+
+                if time.time() - start_time > timeout:
+                    break
+
+            if l is None or l["lock"] == False:
+                # The lock is acquired
+                try:
+                    self.hold_lock = True
+                    yield
+                finally:
+                    l = self._lock.find_one_and_update({"name" : "lock"},
+                                                       {"$set" : {"lock" : False}})
+                    self.hold_lock = False
+            else:
+                raise TimeoutError("Could not acquire MongoDB lock")
 
     def all_results(self):
         """Get all entries of the result table as a list. The order is

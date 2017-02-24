@@ -1,10 +1,8 @@
-
-from itertools import islice
-
 import numpy
 
 from ..base import SearchAlgorithm
-from ..space import Distribution, ContinuousDistribution
+from ..space import Distribution
+
 
 class ParameterGrid(object):
     def __init__(self, space):
@@ -24,12 +22,11 @@ class ParameterGrid(object):
     def __getitem__(self, i):
         # This is a reimplementation of scikit-learn ParameterGrid __getitem__
         l = len(self)
-        if i < 0 and i >= -l:
-            i = l + i
+        if -l <= i < 0:
+            i += l
         elif i < -l or i >= l:
             raise IndexError("list index out of range")
 
-        names = iter(self.space.names())
         for subspace in self.space.subspaces():
             # XXX: could memoize information used here
             sizes = [len(v_list) if isinstance(v_list, Distribution) else 1 for v_list in subspace]
@@ -81,13 +78,14 @@ class Grid(SearchAlgorithm):
         with self.conn.lock():
             i = self.conn.count_results()
             if i < len(self.grid):
-                token = {"_chocolate_id" : i}
+                token = {"_chocolate_id": i}
                 # Sample next point in [0, 1)^n
                 out = self.grid[i]
                 
                 # Signify next point to others using loss set to None
                 # Transform to dict with parameter name
-                entry = {k : v for k, v in zip(self.space.names(), out)}
+                # entry = {k : v for k, v in zip(self.space.names(), out)}
+                entry = self.space(out, transform=False)
                 # entry = out.copy()
                 # entry["_loss"] = None
                 entry.update(token)

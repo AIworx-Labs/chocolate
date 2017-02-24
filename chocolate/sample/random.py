@@ -1,9 +1,8 @@
-
 import numpy
 
 from ..base import SearchAlgorithm
-from ..space import ContinuousDistribution
 from .grid import ParameterGrid
+
 
 class Random(SearchAlgorithm):
     """Random sampler.
@@ -80,11 +79,11 @@ class Random(SearchAlgorithm):
                 self.drawn += i - self.drawn + 1
                 
                 # Some dbs don't like numpy.int64
-                token = {"_chocolate_id" : int(sample)}
+                token = {"_chocolate_id": int(sample)}
                 out = self.subspace_grids[sample]
 
             else:
-                token = {"_chocolate_id" : i}
+                token = {"_chocolate_id": i}
 
                 # Restore state by burning numbers
                 self.random_state.rand(len(self.space), (i - self.drawn))
@@ -93,7 +92,8 @@ class Random(SearchAlgorithm):
                 out = self.random_state.rand(len(self.space))
                 self.drawn += i - self.drawn + 1
 
-            entry = {k : v for k, v in zip(self.space.names(), out)}
+            # entry = {k : v for k, v in zip(self.space.names(), out)}
+            entry = self.space(out, transform=False)
             # entry["_loss"] = None
             entry.update(token)
             self.conn.insert_result(entry)

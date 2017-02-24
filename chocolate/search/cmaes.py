@@ -1,4 +1,4 @@
-from itertools import cycle, groupby
+from itertools import groupby
 from operator import itemgetter
 
 import numpy
@@ -22,7 +22,7 @@ class CMAES(SearchAlgorithm):
 
     Args:
         connection: A database connection object.
-        space: the search space to explore with only discrete dimensions.
+        space: The search space to explore.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
             database and insert set the space to the provided one.
@@ -81,8 +81,8 @@ class CMAES(SearchAlgorithm):
 
     def next(self):
         """Retrieve the next point to evaluate based on available data in the
-        database. Each time :meth:`next` is called, the algorihtm will reinitialize
-        it-self and 
+        database. Each time :meth:`next` is called, the algorithm will reinitialize
+        it-self based on the data in the database.
 
         Returns:
             A tuple containing a unique token and a fully qualified parameter set.
@@ -143,7 +143,7 @@ class CMAES(SearchAlgorithm):
             # If the parent is still None and ancestors are available
             # set the parent to the first evaluated candidate if any
             if self.parent is None and len(ancestors) > 0:
-                self.parent = next((a for a in ancestors if a["loss"]), None)
+                self.parent = next((a for a in ancestors if a["loss"] is not None), None)
 
             # Generate the next point
             token = {"_chocolate_id": self.conn.count_results()}
@@ -155,14 +155,16 @@ class CMAES(SearchAlgorithm):
 
                 # Signify the first point to others using loss set to None
                 # Transform to dict with parameter names
-                entry = {str(k): v for k, v in zip(self.space.names(), out)}
+                # entry = {str(k): v for k, v in zip(self.space.names(), out)}
+                entry = self.space(out, transform=False)
                 # entry["_loss"] = None
                 entry.update(token)
                 self.conn.insert_result(entry)
 
                 # Add the step to the complementary table
                 # Transform to dict with parameter names
-                entry = {str(k): v for k, v in zip(self.space.names(), out)}
+                # entry = {str(k): v for k, v in zip(self.space.names(), out)}
+                entry = self.space(out, transform=False)
                 entry.update(_ancestor_id=-1, _invalid=0, _search_algo="cmaes", **token)
                 self.conn.insert_complementary(entry)
 
@@ -187,7 +189,8 @@ class CMAES(SearchAlgorithm):
                     # The ancestor id is the last candidate that participated in the
                     # covariance matrix update
                     ancestor_id = next(
-                        (a["chocolate_id"] for a in reversed(bootstrap + ancestors) if a["loss"] or a["invalid"] > 0),
+                        (a["chocolate_id"] for a in reversed(bootstrap + ancestors) if a["loss"] is not None or a[
+                            "invalid"] > 0),
                         None)
                     assert ancestor_id is not None, "Invalid ancestor id"
 
@@ -199,13 +202,15 @@ class CMAES(SearchAlgorithm):
 
                     # Add the step to the complementary table
                     # Transform to dict with parameter names
-                    entry = {str(k): v for k, v in zip(self.space.names(), y)}
+                    # entry = {str(k): v for k, v in zip(self.space.names(), y)}
+                    entry = self.space(y, transform=False)
                     entry.update(_ancestor_id=ancestor_id, _invalid=invalid, _search_algo="cmaes", **token)
                     self.conn.insert_complementary(entry)
 
                 # Signify next point to others using loss set to None
                 # Transform to dict with parameter names
-                entry = {str(k): v for k, v in zip(self.space.names(), out)}
+                # entry = {str(k): v for k, v in zip(self.space.names(), out)}
+                entry = self.space(out, transform=False)
                 # entry["_loss"] = None
                 entry.update(token)
                 self.conn.insert_result(entry)
@@ -308,8 +313,8 @@ class CMAES(SearchAlgorithm):
                 self.C = (1 - self.ccovp) * self.C + self.ccovp * numpy.outer(self.pc, self.pc)
             else:
                 self.pc = (1 - self.cc) * self.pc
-                self.C = (1 - self.ccovp) * self.C + self.ccovp * (
-                numpy.outer(self.pc, self.pc) + self.cc * (2 - self.cc) * self.C)
+                self.C = (1 - self.ccovp) * self.C + self.ccovp * (numpy.outer(self.pc, self.pc)
+                                                                   + self.cc * (2 - self.cc) * self.C)
 
             self.A = numpy.linalg.cholesky(self.C)
 

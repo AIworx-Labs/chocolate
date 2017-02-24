@@ -1,8 +1,6 @@
-
 import multiprocessing
 import os
-import shutil
-import string
+import tempfile
 import time
 import unittest
 import uuid
@@ -50,6 +48,11 @@ class Base(object):
 
         p.join()
         self.assertEqual(timeout, True)
+
+    def test_reentrant_lock(self):
+        with self.conn.lock(timeout=1):
+            with self.conn.lock(timeout=1):
+                pass
 
     def test_results(self):
         data = [{"abc" : 0, "def" : 2}, {"abc" : 1}, {"def" : 42, "abc" : 67, "hij" : 23}]
@@ -138,47 +141,49 @@ class Base(object):
         self.assertEqual(self.conn.get_space(), None)
 
 
-class TestSQLite(unittest.TestCase, Base):
+class TestSQLiteFile(unittest.TestCase, Base):
     def setUp(self):
-        self.db_path = str(uuid.uuid1())
+        self.tmp_dir = tempfile.TemporaryDirectory()
         self.db_name = "tmp.db"
-        self.engine_str = "sqlite:///{}".format(os.path.join(self.db_path, self.db_name))
+        self.engine_str = "sqlite:///{}".format(os.path.join(self.tmp_dir.name, self.db_name))
 
-        os.mkdir(self.db_path)
         self.conn = SQLiteConnection(self.engine_str)
 
         self.conn_func = SQLiteConnection
         self.conn_args = (self.engine_str,)
 
     def tearDown(self):
-        shutil.rmtree(self.db_path)
+        self.tmp_dir.cleanup()
 
     @given(text(max_size=0))
     def test_empty_name_connect(self, s):
-        engine_str = "sqlite:///{}".format(os.path.join(self.db_path, ""))
+        engine_str = "sqlite:///{}".format(os.path.join(self.tmp_dir.name, ""))
         self.assertRaises(RuntimeError, SQLiteConnection, engine_str)
 
     @given(text(alphabet="/ "))
     def test_invalid_ending_name_connect(self, s):
-        engine_str = "sqlite:///{}".format(os.path.join(self.db_path, s))
+        engine_str = "sqlite:///{}".format(os.path.join(self.tmp_dir.name, s))
         self.assertRaises(RuntimeError, SQLiteConnection, engine_str)
 
     def test_no_uri_connect(self):
-        engine_str = os.path.join(self.db_path, self.db_name)
+        engine_str = os.path.join(self.tmp_dir.name, self.db_name)
         self.assertRaises(RuntimeError, SQLiteConnection, engine_str)
 
-    def test_memory(self):
-        pass
+    def test_memory_raises(self):
+        engine_str = "sqlite:///:memory:"
+        self.assertRaises(RuntimeError, SQLiteConnection, engine_str)
+
 
 @unittest.skipIf(pymongo is None, "Cannot find pymongo module")
 @unittest.skipIf(mongodb == False, "Cannot cannot connect to mongodb://localhost:27017/")
 class TestMongoDB(unittest.TestCase, Base):
     def setUp(self):
         self.db_name = str(uuid.uuid1())
-        self.conn = MongoDBConnection("mongodb://localhost:27017/", database=self.db_name)
+        self.engine_str = "mongodb://localhost:27017/"
+        self.conn = MongoDBConnection(self.engine_str, database=self.db_name)
 
         self.conn_func = MongoDBConnection
-        self.conn_args = ("mongodb://localhost:27017/", self.db_name)
+        self.conn_args = (self.engine_str, self.db_name)
 
     def tearDown(self):
         self.conn.client.drop_database(self.db_name)
