@@ -92,4 +92,4 @@ dictionaries at the top level, if for example a configuration does not name an
 
              {"type" : "an_other_optimizer", "param" : choco.uniform(low=-1, high=1)}]
 
-The remaining of the exploration is identical to the previous section. 
+The remaining of the exploration is identical to the previous section.

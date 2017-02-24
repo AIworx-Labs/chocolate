@@ -8,7 +8,6 @@ from chocolate.base import SearchAlgorithm
 class TestSearchAlgorithm(unittest.TestCase):
     def setUp(self):
         self.mock_conn = MagicMock(name="connection")
-        self.mock_space = MagicMock(name="space")
 
     def test_space_none_none(self):
         self.mock_conn.get_space.return_value = None

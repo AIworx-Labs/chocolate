@@ -24,4 +24,4 @@ Here is how to get a nice pairwise plot of each parameter with the loss. ::
     plt.show()
 
 And for those like me who are not patient enough to let the optimization finish,
-the method :meth:`~chocolate.SQLiteConnection.results_as_dataframe` is thread-safe!
+the method :meth:`~chocolate.SQLiteConnection.results_as_dataframe` is multiprocess-safe!
