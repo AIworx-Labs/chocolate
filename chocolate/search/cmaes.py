@@ -91,50 +91,9 @@ class CMAES(SearchAlgorithm):
 
         with self.conn.lock():
             # Check what is available in that database
-
-            # Get a list of the actual ancestor and the complementary information 
-            # on that ancestor
             results = {r["_chocolate_id"]: r for r in self.conn.all_results()}
-
-            ancestors = list()
-            ancestors_ids = set()
-            for c in sorted(self.conn.all_complementary(), key=itemgetter("_chocolate_id")):
-                candidate = dict()
-                candidate["step"] = numpy.array([c[str(k)] for k in self.space.names()])
-                candidate["chocolate_id"] = c["_chocolate_id"]
-                candidate["ancestor_id"] = c["_ancestor_id"]
-                candidate["invalid"] = c["_invalid"]
-                candidate["loss"] = None
-
-                if c["_invalid"] == 0:
-                    candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
-                    candidate["loss"] = results[c["_chocolate_id"]]["_loss"]
-
-                ancestors.append(candidate)
-                ancestors_ids.add(candidate["chocolate_id"])
-
-            # Find individuals produced by another algorithm
-            bootstrap = list()
-            for _, c in sorted(results.items()):
-                # Skip those included in ancestors
-                if c["_chocolate_id"] in ancestors_ids:
-                    continue
-
-                candidate = dict()
-                # The initial distribution is assumed uniform and centred on 0.5^n
-                candidate["step"] = numpy.array([c[str(k)] - 0.5 for k in self.space.names()])
-                candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
-                candidate["chocolate_id"] = c["_chocolate_id"]
-                candidate["ancestor_id"] = -1
-                # Compute constraint violation
-                candidate["invalid"] = sum(2 ** (2 * i) for i, xi in enumerate(candidate["X"]) if xi < 0)
-                candidate["invalid"] += sum(2 ** (2 * i + 1) for i, xi in enumerate(candidate["X"]) if xi >= 1)
-                candidate["loss"] = None
-
-                if candidate["invalid"] == 0:
-                    candidate["loss"] = c["_loss"]
-
-                bootstrap.append(candidate)
+            ancestors, ancestors_ids = self._load_ancestors(results)
+            bootstrap = self._load_bootstrap(results, ancestors_ids)
 
             # Rank-mu update on individuals created from another algorithm
             self._bootstrap(bootstrap)
@@ -148,7 +107,7 @@ class CMAES(SearchAlgorithm):
             # Generate the next point
             token = {"_chocolate_id": self.conn.count_results()}
 
-            # If the parent is still None, no information available 
+            # If the parent is still None, no information available
             if self.parent is None:
                 # out = numpy.ones(self.dim) / 2.0
                 out = numpy.random.rand(self.dim)
@@ -252,6 +211,54 @@ class CMAES(SearchAlgorithm):
 
         if self.update_count == 0:
             self.psucc = self.ptarg
+
+    def _load_ancestors(self, results):
+        # Get a list of the actual ancestor and the complementary information
+        # on that ancestor
+        ancestors = list()
+        ancestors_ids = set()
+        for c in sorted(self.conn.all_complementary(), key=itemgetter("_chocolate_id")):
+            candidate = dict()
+            candidate["step"] = numpy.array([c[str(k)] for k in self.space.names()])
+            candidate["chocolate_id"] = c["_chocolate_id"]
+            candidate["ancestor_id"] = c["_ancestor_id"]
+            candidate["invalid"] = c["_invalid"]
+            candidate["loss"] = None
+
+            if c["_invalid"] == 0:
+                candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
+                candidate["loss"] = results[c["_chocolate_id"]]["_loss"]
+
+            ancestors.append(candidate)
+            ancestors_ids.add(candidate["chocolate_id"])
+
+        return ancestors, ancestors_ids
+
+    def _load_bootstrap(self, results, ancestors_ids):
+        # Find individuals produced by another algorithm
+        bootstrap = list()
+        for _, c in sorted(results.items()):
+            # Skip those included in ancestors
+            if c["_chocolate_id"] in ancestors_ids:
+                continue
+
+            candidate = dict()
+            # The initial distribution is assumed uniform and centred on 0.5^n
+            candidate["step"] = numpy.array([c[str(k)] - 0.5 for k in self.space.names()])
+            candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
+            candidate["chocolate_id"] = c["_chocolate_id"]
+            candidate["ancestor_id"] = -1
+            # Compute constraint violation
+            candidate["invalid"] = sum(2 ** (2 * i) for i, xi in enumerate(candidate["X"]) if xi < 0)
+            candidate["invalid"] += sum(2 ** (2 * i + 1) for i, xi in enumerate(candidate["X"]) if xi >= 1)
+            candidate["loss"] = None
+
+            if candidate["invalid"] == 0:
+                candidate["loss"] = c["_loss"]
+
+            bootstrap.append(candidate)
+
+        return bootstrap
 
     def _bootstrap(self, candidates):
         # Active covariance update for invalid individuals

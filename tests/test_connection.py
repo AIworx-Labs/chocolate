@@ -1,8 +1,6 @@
-
 import multiprocessing
 import os
 import shutil
-import string
 import time
 import unittest
 import uuid
@@ -15,6 +13,8 @@ try:
 except ImportError:
     pymongo = None
 
+from chocolate import SQLiteConnection, MongoDBConnection, Space, uniform
+
 if pymongo is not None:
     client = pymongo.MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=5)
     try:
@@ -24,12 +24,12 @@ if pymongo is not None:
     else:
         mongodb = True
 
-from chocolate import SQLiteConnection, MongoDBConnection, Space, uniform
 
 def lock_db(conn_class, *args):
     conn = conn_class(*args)
     with conn.lock():
         time.sleep(1)
+
 
 class Base(object):
     def test_lock(self):
@@ -52,8 +52,8 @@ class Base(object):
         self.assertEqual(timeout, True)
 
     def test_results(self):
-        data = [{"abc" : 0, "def" : 2}, {"abc" : 1}, {"def" : 42, "abc" : 67, "hij" : 23}]
-        
+        data = [{"abc": 0, "def": 2}, {"abc": 1}, {"def": 42, "abc": 67, "hij": 23}]
+
         for d in data:
             self.conn.insert_result(d)
 
@@ -70,30 +70,29 @@ class Base(object):
                 self.assertIn(k, r)
                 self.assertEqual(v, r[k])
 
-        res = self.conn.find_results({"abc" : 67})
+        res = self.conn.find_results({"abc": 67})
         self.assertEqual(1, len(res))
         self.assertIn("hij", res[0])
         self.assertIn("def", res[0])
         self.assertIn("abc", res[0])
-        
 
     def test_update_result(self):
-        data = {"abc" : 0, "def" : 2}
-        token = {"_chocolate_id" : 0}
+        data = {"abc": 0, "def": 2}
+        token = {"_chocolate_id": 0}
 
         entry = data.copy()
         entry["loss"] = None
         entry.update(token)
         self.conn.insert_result(entry)
-        
-        values = {"_loss" : 0.98}
+
+        values = {"_loss": 0.98}
         self.conn.update_result(token, values)
 
         res = self.conn.all_results()[0]
         self.assertEqual(values["_loss"], res["_loss"])
 
     def test_complementaries(self):
-        data = [{"abc" : 0, "def" : 2}, {"abc" : 1}, {"def" : 42, "abc" : 67}]
+        data = [{"abc": 0, "def": 2}, {"abc": 1}, {"def": 42, "abc": 67}]
 
         for d in data:
             self.conn.insert_complementary(d)
@@ -113,9 +112,9 @@ class Base(object):
         self.assertEqual(res["abc"], data[2]["abc"])
 
     def test_space(self):
-        s = {"a" : uniform(1, 2),
-             "b" : {"c" : {"c1" : uniform(0, 5)},
-                    "d" : {"d1" : uniform(0, 6)}}}
+        s = {"a": uniform(1, 2),
+             "b": {"c": {"c1": uniform(0, 5)},
+                   "d": {"d1": uniform(0, 6)}}}
         space = Space(s)
 
         space_read = self.conn.get_space()
@@ -128,10 +127,10 @@ class Base(object):
         self.assertRaises(AssertionError, self.conn.insert_space, space)
 
     def test_clear(self):
-        self.conn.insert_result({"foo" : "bar"})
-        self.conn.insert_complementary({"bar" : "spam", "foo" : 2})
+        self.conn.insert_result({"foo": "bar"})
+        self.conn.insert_complementary({"bar": "spam", "foo": 2})
         self.conn.insert_space("some_data")
-        
+
         self.conn.clear()
         self.assertEqual(self.conn.count_results(), 0)
         self.assertEqual(self.conn.all_complementary(), [])
@@ -153,8 +152,7 @@ class TestSQLite(unittest.TestCase, Base):
     def tearDown(self):
         shutil.rmtree(self.db_path)
 
-    @given(text(max_size=0))
-    def test_empty_name_connect(self, s):
+    def test_empty_name_connect(self):
         engine_str = "sqlite:///{}".format(os.path.join(self.db_path, ""))
         self.assertRaises(RuntimeError, SQLiteConnection, engine_str)
 
@@ -169,6 +167,7 @@ class TestSQLite(unittest.TestCase, Base):
 
     def test_memory(self):
         pass
+
 
 @unittest.skipIf(pymongo is None, "Cannot find pymongo module")
 @unittest.skipIf(mongodb == False, "Cannot cannot connect to mongodb://localhost:27017/")
