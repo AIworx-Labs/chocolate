@@ -1,12 +1,15 @@
 
 from contextlib import contextmanager
 import pickle
-import re
 import time
 
-from pymongo import MongoClient
+try:
+    from pymongo import MongoClient
+except ImportError:
+    MongoClient = False
 
 from ..base import Connection
+
 
 class MongoDBConnection(Connection):
     """Connection to a MongoDB database.
@@ -157,3 +160,12 @@ class MongoDBConnection(Connection):
         self.results = self.db[self.result_collection_name]
         self.complementary = self.db[self.complementary_collection_name]
         self.space = self.db[self.space_collection_name]
+
+
+class _MongoDBConnectionFailedImport(MongoDBConnection):
+    def __init__(self, *args, **kwargs):
+        raise ImportError("No module named 'pymongo' required for MongoDBConnection.")
+
+
+if not MongoClient:
+    MongoDBConnection = _MongoDBConnectionFailedImport
