@@ -114,8 +114,8 @@ class SQLiteConnection(Connection):
         be defined nor all present. Any new column will be added to the
         database and any missing column will get value None.
         """
-        with dataset.connect(self.url) as tx:
-            return tx[self.result_table_name].insert(document)
+        db = dataset.connect(self.url)
+        return db[self.result_table_name].insert(document)
 
     def update_result(self, filter, values):
         """Update or add *values* of a given row in the result table.
@@ -127,8 +127,8 @@ class SQLiteConnection(Connection):
         filter = filter.copy()
         keys = list(filter.keys())
         filter.update(values)
-        with dataset.connect(self.url) as tx:
-            return tx[self.result_table_name].update(filter, keys)
+        db = dataset.connect(self.url)
+        return db[self.result_table_name].update(filter, keys)
 
     def count_results(self):
         """Get the total number of entries in the result table.
@@ -146,8 +146,8 @@ class SQLiteConnection(Connection):
     def insert_complementary(self, document):
         """Insert a new document (row) in the complementary information table.
         """
-        with dataset.connect(self.url) as tx:
-            return tx[self.complementary_table_name].insert(document)
+        db = dataset.connect(self.url)
+        return db[self.complementary_table_name].insert(document)
 
     def find_complementary(self, filter):
         """Find a document (row) from the complementary information table.
@@ -175,17 +175,17 @@ class SQLiteConnection(Connection):
         Raises:
             AssertionError: If a space is already present in the database.
         """
-        with dataset.connect(self.url) as tx:
-            assert tx[self.space_table_name].count() == 0, ("Space table cannot contain more than one space, "
-                "clear table first.")
-            return tx[self.space_table_name].insert({"space" : pickle.dumps(space)})
+        db = dataset.connect(self.url)
+        assert db[self.space_table_name].count() == 0, ("Space table cannot contain more than one space, "
+            "clear table first.")
+        return db[self.space_table_name].insert({"space" : pickle.dumps(space)})
 
     def clear(self):
         """Clear all data from the database.
         """
-        with dataset.connect(self.url) as tx:
-            tx[self.result_table_name].drop()
-            tx[self.complementary_table_name].drop()
-            tx[self.space_table_name].drop()
-            results = tx[self.result_table_name]
-            results.create_column("_loss", sqlalchemy.Float)
+        db = dataset.connect(self.url)
+        db[self.result_table_name].drop()
+        db[self.complementary_table_name].drop()
+        db[self.space_table_name].drop()
+        results = db[self.result_table_name]
+        results.create_column("_loss", sqlalchemy.Float)
