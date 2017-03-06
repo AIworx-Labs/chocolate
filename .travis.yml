@@ -6,7 +6,8 @@ python:
 # command to install dependencies
 install:
   # Scikit-Learn does not depend on thoses, they might be miss ordered by pip
-  - pip install numpy scipy
+  - pip install numpy
+  - pip install scipy
   - pip install .
   - pip install -r requirements.txt
 # command to run tests
