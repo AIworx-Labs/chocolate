@@ -3,7 +3,6 @@ import numpy
 from sklearn import gaussian_process
 from scipy.optimize import minimize
 from scipy.stats import norm
-from bayes_opt import helpers
 
 class GP(SearchAlgorithm):
     def __init__(self, connection, space, random_state=None, n_bootstrap=10, utility_function="ucb", kappa=2.756, xi=0.1, **params):
