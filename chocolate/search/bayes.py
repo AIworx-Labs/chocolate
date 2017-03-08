@@ -39,7 +39,7 @@ class Bayes(SearchAlgorithm):
         super(Bayes, self).__init__(connection, space, clear_db)
         self.k = None
         if len(self.space.subspaces()) > 1:
-            self.k = kernels.ConditionalKernel()
+            self.k = kernels.ConditionalKernel(self.space)
         self.n_bootstrap = n_bootstrap
         if utility_function == "ucb":
             self.utility = self._ucb
