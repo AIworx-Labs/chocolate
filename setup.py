@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="chocolate",
-    version="0.1",
+    version="0.6",
     packages=find_packages(exclude=['examples', 'tests']),
     test_suite="tests",
     install_requires=["numpy>=1.11", "scipy>=0.18", "scikit-learn>=0.18", "pandas>=0.19", "dataset>=0.8", "filelock>=2.0"],
