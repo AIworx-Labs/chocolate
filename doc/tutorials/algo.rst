@@ -60,7 +60,7 @@ Here is a table that resumes when to use each algorithm.
 +-----------------------------------------+----------------+-------------------+---------------+----------------+
 | :class:`~chocolate.QuasiRandom`         | Medium/High    | Medium/High       | Mixed         | Yes            |
 +-----------------------------------------+----------------+-------------------+---------------+----------------+
-| :class:`~chocolate.Bayes`               | Medium/High    | Low/Medium        | Mixed         | More or less   |
+| :class:`~chocolate.Bayes`               | Medium/High    | Low/Medium        | Mixed         | Yes            |
 +-----------------------------------------+----------------+-------------------+---------------+----------------+
 | :class:`~chocolate.CMAES`               | Low/Medium     | Low/Medium        | Mixed         | No             |
 +-----------------------------------------+----------------+-------------------+---------------+----------------+
