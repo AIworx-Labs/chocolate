@@ -20,7 +20,7 @@ class Bayes(SearchAlgorithm):
         space: the search space to explore with only discrete dimensions.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
-            database andset set the space to the provided one.
+            database and set set the space to the provided one.
         random_state: An instance of :class:`~numpy.random.RandomState`, an
             object to initialize the internal random state with, or None, in
             which case the global numpy random state is used.

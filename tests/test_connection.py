@@ -157,7 +157,7 @@ class TestSQLite(unittest.TestCase, Base):
         self.tmp_dir.cleanup()
 
     def test_empty_name_connect(self):
-        engine_str = "sqlite:///{}".format(os.path.join(self.db_path, ""))
+        engine_str = "sqlite:///{}".format(os.path.join(self.tmp_dir.name, ""))
         self.assertRaises(RuntimeError, SQLiteConnection, engine_str)
 
     @given(text(alphabet="/ "))
