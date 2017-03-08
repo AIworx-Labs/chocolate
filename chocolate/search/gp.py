@@ -39,7 +39,7 @@ class GP(SearchAlgorithm):
         super(GP, self).__init__(connection, space)
         self.k = None
         if len(self.space.subspaces()) > 1:
-            self.k = kernels.ConditionalKernel()
+            self.k = kernels.ConditionalKernel(self.space)
         self.n_bootstrap = n_bootstrap
         if utility_function == "ucb":
             self.utility = self._ucb
