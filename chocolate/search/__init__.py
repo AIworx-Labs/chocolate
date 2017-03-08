@@ -1,3 +1,3 @@
 
 from .cmaes import CMAES
-from .gp import GP
+from .bayes import Bayes

@@ -5,8 +5,14 @@ Search Algorithms
 
 .. currentmodule:: chocolate
 
+.. autoclass:: Bayes
+
+   .. automethod:: next
+
+   .. automethod:: update
+
 .. autoclass:: CMAES
 
-   .. automethod:: CMAES.next
+   .. automethod:: next
 
-   .. automethod:: CMAES.update
+   .. automethod:: update

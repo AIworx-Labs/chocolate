@@ -46,4 +46,5 @@ Library Reference
 .. autosummary::
    :nosignatures:
 
+   Bayes
    CMAES

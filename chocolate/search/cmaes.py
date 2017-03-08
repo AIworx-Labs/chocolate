@@ -8,7 +8,7 @@ from ..base import SearchAlgorithm
 
 # TODO: Use self random state
 class CMAES(SearchAlgorithm):
-    """Covariance Matrix Adaptation Evolution Strategy optimization method.
+    """Covariance Matrix Adaptation Evolution Strategy minimization method.
 
     A CMA-ES strategy that combines the :math:`(1 + \\lambda)` paradigm
     [Igel2007]_, the mixed integer modification [Hansen2011]_, active
@@ -25,7 +25,7 @@ class CMAES(SearchAlgorithm):
         space: the search space to explore with only discrete dimensions.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
-            database and insert set the space to the provided one.
+            database and set the space to the provided one.
         random_state: An instance of :class:`~numpy.random.RandomState`, an
             object to initialize the internal random state with, or None, in
             which case the global numpy random state is used.
@@ -271,7 +271,7 @@ class CMAES(SearchAlgorithm):
         if len(candidates) >= 4:
             mu = int(len(candidates) / 2)
             # superlinear weights (the usual default)
-            weights = weights = numpy.log(mu + 0.5) - numpy.log(numpy.arange(1, mu + 1))
+            weights = numpy.log(mu + 0.5) - numpy.log(numpy.arange(1, mu + 1))
             weights /= sum(weights)
             c1 = 2 / len(candidates[0]) ** 2
             cmu = mu / len(candidates[0]) ** 2

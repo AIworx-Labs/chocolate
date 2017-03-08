@@ -61,7 +61,7 @@ class Grid(SearchAlgorithm):
         space: The search space to explore with only discrete dimensions.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
-            database and insert set the space to the provided one.
+            database and set the space to the provided one.
     """
     def __init__(self, connection, space, clear_db=False):
         super(Grid, self).__init__(connection, space, clear_db)

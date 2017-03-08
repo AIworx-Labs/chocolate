@@ -24,7 +24,7 @@ class Random(SearchAlgorithm):
             :class:`chocolate.Space` instance.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
-            database and insert set the space to the provided one.
+            database and set the space to the provided one.
         random_state: Either a :class:`numpy.random.RandomState` instance, an
             object to initialize the random state with or
             :data:`None` in which case the global state is used.

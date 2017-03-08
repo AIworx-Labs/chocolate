@@ -25,7 +25,7 @@ Chocolate proposes 5 algorithms with their own advantages and disadvantages:
     when not all variables are discrete, the number of dimensions is high and the time
     required to evaluate a solution is high.
 
-  * :class:`~chocolate.GaussianProcess` search models the search space using gaussian process
+  * :class:`~chocolate.Bayes` search models the search space using gaussian process
     regression, which allows to have an estimate of the loss function and the uncertainty on
     that estimate at every point of the search space. Modeling the search space suffers from
     the curse of dimensionality, which makes this method more suitable when the number of
@@ -50,7 +50,7 @@ Here is a table that resumes when to use each algorithm.
 +-----------------------------------------+----------------+-------------------+---------------+
 | :class:`~chocolate.QuasiRandom`         | Medium/High    | Medium/High       | Mixed         |
 +-----------------------------------------+----------------+-------------------+---------------+
-| :class:`~chocolate.GaussianProcess`     | Medium/High    | Low/Medium        | Mixed         |
+| :class:`~chocolate.Bayes`               | Medium/High    | Low/Medium        | Mixed         |
 +-----------------------------------------+----------------+-------------------+---------------+
 | :class:`~chocolate.CMAES`               | Low/Medium     | Low/Medium        | Mixed         |
 +-----------------------------------------+----------------+-------------------+---------------+
