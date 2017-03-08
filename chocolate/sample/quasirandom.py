@@ -1,7 +1,7 @@
-
 import ghalton
 
 from ..base import SearchAlgorithm
+
 
 class QuasiRandom(SearchAlgorithm):
     """Quasi-Random sampler.
@@ -46,7 +46,6 @@ class QuasiRandom(SearchAlgorithm):
             self.seq = ghalton.GeneralizedHalton(len(self.space), random_state)
         else:
             self.seq = ghalton.GeneralizedHalton(len(self.space))
-            
 
         self.drawn = 0
 
@@ -63,7 +62,7 @@ class QuasiRandom(SearchAlgorithm):
         """
         with self.conn.lock():
             i = self.conn.count_results()
-            token = {"_chocolate_id" : i}
+            token = {"_chocolate_id": i}
 
             # Burn the first i + skip points
             self.seq.get(self.skip + i - self.drawn)
@@ -73,7 +72,8 @@ class QuasiRandom(SearchAlgorithm):
             self.drawn += i - self.drawn + 1
 
             # Signify next point to others using loss set to None
-            entry = {k : v for k, v in zip(self.space.names(), out)}
+            # entry = {k : v for k, v in zip(self.space.names(), out)}
+            entry = self.space(out, transform=False)
             # entry["_loss"] = None
             entry.update(token)
             self.conn.insert_result(entry)

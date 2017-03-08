@@ -4,10 +4,18 @@ from itertools import chain, count, islice, product, combinations
 
 import numpy
 
+class Constant(object):
+    def __init__(self, value):
+        self.value = value
+
 class Distribution(object):
     """Base class for every Chocolate distributions.
     """
-    pass
+    def __len__(self):
+        raise NotImplementedError
+
+    def __getitem__(self, item):
+        raise NotImplementedError
 
 class ContinuousDistribution(Distribution):
     """Base class for every Chocolate continuous distributions.
@@ -324,14 +332,15 @@ class Space(object):
             spaces = [spaces]
 
         self.spaces = OrderedDict()
+        self.constants = list()
         for subspace in spaces:
             ts_key = list()
             ts_space = OrderedDict()
 
-            # print(subspace)
             for k, v in sorted(subspace.items()):
-                if k == "":
-                    raise RuntimeError("'' is not a valid parameter name")
+                if k == "":# or k == "_subspace":
+                    raise RuntimeError("'{}' is not a valid parameter name".format(k))
+
                 if isinstance(v, Distribution):
                     ts_space[k] = v
                 elif isinstance(v, Mapping):
@@ -351,6 +360,8 @@ class Space(object):
                         cond_subspaces.append(s)
 
                     ts_space[k] = Space(cond_subspaces)
+                elif isinstance(v, Constant):
+                    self.constants.append((k, v.value))
                 else:
                     ts_key.append((k, v))
 
@@ -377,15 +388,16 @@ class Space(object):
 
         return ndims
 
-    def __call__(self, x):
+    def __call__(self, x, transform=True):
         out = dict()
         assert len(self) == len(x), "Space and vector dimensions missmatch {} != {}".format(len(self), len(x))
         iter_x = iter(x)
 
+        space_idx = 0
         if len(self.spaces) > 1:
             space_idx = self.subspace_choice(numpy.clip(next(iter_x), 0, 0.9999))
-            subspace_key = list(self.spaces.keys())[space_idx]
-            out.update(subspace_key)
+
+        subspace_key = list(self.spaces.keys())[space_idx]
 
         for key, subspace in self.spaces.items():
             for k, v in subspace.items():
@@ -396,12 +408,17 @@ class Space(object):
 
                 if len(self.spaces) == 1 or subspace_key == key:
                     if isinstance(v, Distribution):
-                        out[k] = v(xi)
+                        if transform:
+                            out[k] = v(xi)
+                        else:
+                            out[k] = xi
                     elif isinstance(v, Space):
-                        out.update(**v(xi))
+                        out.update(**v(xi, transform))
                     else:
                         raise TypeError("Oops something went wrong!")
-                        
+
+        out.update(subspace_key)
+        out.update(self.constants)
         return out
 
     def isactive(self, x):
@@ -485,11 +502,15 @@ class Space(object):
                     
         return out
 
-    def names(self):
+    def names(self, unique=True):
         """Returns unique sequential names meant to be used as database column
         names.
 
-        Example:
+        Args:
+            unique: Whether or not to return unique mangled names. Subspaces will
+                still be mangled.
+
+        Examples:
             If the length of the space is 2 as follow ::
 
                 In [2]: s = Space({"learning_rate" : uniform(0.0005, 0.1),
@@ -549,9 +570,16 @@ class Space(object):
                 prefix = prefix.replace("'", "")
                 prefix = prefix.replace(".", "_")
                 if isinstance(v, Distribution):
-                    names.append("{}{}".format(prefix, k))
+                    if unique:
+                        names.append("{}{}".format(prefix, k))
+                    else:
+                        names.append(k)
                 elif isinstance(v, Space):
-                    names.extend("{}{}_{}".format(prefix, k, n) for n in v.names())
+                    for n in v.names(unique):
+                        if unique or n.endswith("_subspace"):
+                            names.append("{}{}_{}".format(prefix, k, n))
+                        else:
+                            names.append(n)
                 else:
                     raise TypeError("Unexpected type {} inspace".format(type(v)))
         
@@ -683,8 +711,8 @@ class Space(object):
 
 
 if __name__ == "__main__":
-    # from sklearn.svm import SVC, LinearSVC
-    # from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.svm import SVC, LinearSVC
+    from sklearn.neighbors import KNeighborsClassifier
 
     space1 = {"a" : uniform(1, 2),
               "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
@@ -720,13 +748,14 @@ if __name__ == "__main__":
     print(s.steps())
     print(s.names())
     print(s.isdiscrete())
-    print(s.subspaces())
+    for subspace in s.subspaces():
+        print("*", subspace)
 
     x = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
     print(s(x))
     print(s.isactive(x))
-    
-    
+
+
 
     print("="*12)
     space = [{"algo" : SVC, "kernel" : "rbf", "C" : uniform(low=0.001, high=10000), "gamma" : uniform(low=0, high=1)},
@@ -740,18 +769,19 @@ if __name__ == "__main__":
     print(s.steps())
     print(s.names())
     print(s.isdiscrete())
-    print(s.subspaces())
+    for subspace in s.subspaces():
+        print("*", subspace)
 
     x = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
     print(s(x))
     print(s.isactive(x))
 
     print("="*12)
-    space = [{"algo" : "svm", 
+    space = [{"algo" : "svm",
               "C" : log(low=-3, high=5, base=10),
               "kernel" : {"linear" : None,
                           "rbf" : {"gamma" : log(low=-2, high=3, base=10)}}},
-             
+
              {"algo" : "knn",
                   "n_neighbors" : quantized_uniform(low=1, high=20, step=1)}]
 
@@ -760,7 +790,8 @@ if __name__ == "__main__":
     print(s.steps())
     print(s.names())
     print(s.isdiscrete())
-    print(s.subspaces())
+    for subspace in s.subspaces():
+        print("*", subspace)
 
     x = [0.1, 0.2, 0.7, 0.4, 0.5]
     print(s(x))
@@ -779,7 +810,8 @@ if __name__ == "__main__":
     print(s.steps())
     print(s.names())
     print(s.isdiscrete())
-    print(s.subspaces())
+    for subspace in s.subspaces():
+        print("*", subspace)
 
     x = [0.5, 0.0, 0.5, 0.5, 0.3, 0.5, 0.2]
     print(s(x))
@@ -795,12 +827,13 @@ if __name__ == "__main__":
     print(s.steps())
     print(s.names())
     print(s.isdiscrete())
-    print(s.subspaces())
+    for subspace in s.subspaces():
+        print("*", subspace)
 
     x = [0.1, 0.2, 0.7, 0.4]
     print(s(x))
     print(s.isactive(x))
-    
+
 
     print("="*12)
     space = {"algo" : {SVC : {"gamma" : log(low=-9, high=3, base=10)},
@@ -815,14 +848,15 @@ if __name__ == "__main__":
     print(s.steps())
     print(s.names())
     print(s.isdiscrete())
-    print(s.subspaces())
+    for subspace in s.subspaces():
+        print("*", subspace)
 
 
     print("="*12)
-    space = [{"algo" : {SVC : {"gamma" : log(low=-9, high=3, base=10)},
+    space = [{"algo" : {SVC : {"gamma" : log(low=-9, high=3, base=10),
                                "kernel" : {"rbf" : None,
-                                          "poly" : {"degree" : quantized_uniform(low=1, high=5,  step=1),
-                                                     "coef0" : uniform(low=-1, high=1)}},
+                                           "poly" : {"degree" : quantized_uniform(low=1, high=5,  step=1),
+                                                     "coef0" : uniform(low=-1, high=1)}}},
                         LinearSVC : {"penalty" : choice(["l1", "l2"])}},
               "C" : log(low=-2, high=10, base=10)},
 
@@ -833,4 +867,5 @@ if __name__ == "__main__":
     print(s.steps())
     print(s.names())
     print(s.isdiscrete())
-    print(s.subspaces())
+    for subspace in s.subspaces():
+        print("*", subspace)

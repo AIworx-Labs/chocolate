@@ -2,11 +2,12 @@ What Algorithm to Choose?
 =========================
 
 The choice of the sampling/search strategy depends strongly on the problem tackled.
-Ultimately, their are 3 aspects of the problem to look at:
+Ultimately, their are 4 aspects of the problem to look at:
 
   * the time required to evaluate a model,
-  * the number of variables, and
-  * the type of variable (continuous or discrete).
+  * the number of variables,
+  * the type of variable (continuous or discrete),
+  * the conditionality of the search space.
 
 Chocolate proposes 5 algorithms with their own advantages and disadvantages:
 
@@ -39,18 +40,30 @@ Chocolate proposes 5 algorithms with their own advantages and disadvantages:
     search method is more suitable when the time required for a model evaluation is relatively
     low.
 
+In addition to the 5 previous algorithms Chocolate proposes a wrapper that transforms the
+conditional search space problem in a `multi-armed bandit problem
+<https://en.wikipedia.org/wiki/Multi-armed_bandit>`_.
+
+  * :class:`~chocolate.ThompsonSampling` is a wrapper around any of the sampling/search
+    algorithms that will allocate more resources to the exploration of the most promising
+    subspaces. This method will help any of the algorithm in finding a superior solution
+    in conditional search spaces.
+
 Here is a table that resumes when to use each algorithm.
 
-+-----------------------------------------+----------------+-------------------+---------------+
-| Algorithm                               | Required time  | Dimensionality    | Continuity    |
-+=========================================+================+===================+===============+
-| :class:`~chocolate.Grid`                | Low            | Low               | All discrete  |
-+-----------------------------------------+----------------+-------------------+---------------+
-| :class:`~chocolate.Random`              | Medium/High    | Medium/High       | All discrete  |
-+-----------------------------------------+----------------+-------------------+---------------+
-| :class:`~chocolate.QuasiRandom`         | Medium/High    | Medium/High       | Mixed         |
-+-----------------------------------------+----------------+-------------------+---------------+
-| :class:`~chocolate.Bayes`               | Medium/High    | Low/Medium        | Mixed         |
-+-----------------------------------------+----------------+-------------------+---------------+
-| :class:`~chocolate.CMAES`               | Low/Medium     | Low/Medium        | Mixed         |
-+-----------------------------------------+----------------+-------------------+---------------+
++-----------------------------------------+----------------+-------------------+---------------+----------------+
+| Algorithm                               | Required time  | Dimensionality    | Continuity    | Conditionality |
++=========================================+================+===================+===============+================+
+| :class:`~chocolate.Grid`                | Low            | Low               | All discrete  | Yes            |
++-----------------------------------------+----------------+-------------------+---------------+----------------+
+| :class:`~chocolate.Random`              | Medium/High    | Medium/High       | All discrete  | Yes            |
++-----------------------------------------+----------------+-------------------+---------------+----------------+
+| :class:`~chocolate.QuasiRandom`         | Medium/High    | Medium/High       | Mixed         | Yes            |
++-----------------------------------------+----------------+-------------------+---------------+----------------+
+| :class:`~chocolate.Bayes`               | Medium/High    | Low/Medium        | Mixed         | More or less   |
++-----------------------------------------+----------------+-------------------+---------------+----------------+
+| :class:`~chocolate.CMAES`               | Low/Medium     | Low/Medium        | Mixed         | No             |
++-----------------------------------------+----------------+-------------------+---------------+----------------+
+| :class:`~chocolate.ThompsonSampling`    | --             | --                | --            | Yes            |
++-----------------------------------------+----------------+-------------------+---------------+----------------+
+
