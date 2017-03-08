@@ -7,36 +7,36 @@ from . import kernels
 from ..base import SearchAlgorithm
 
 
-class GP(SearchAlgorithm):
-    """
-    Gaussian process optimization method with a conditional kernel.
+class Bayes(SearchAlgorithm):
+    """Bayesian minimization method with gaussian process regressor.
 
-    This method uses scikit-learn's implementation of gaussian processes. Two acquisition function are available. 
-    Upper Confidence Bound (UCB) and Expected Improvement (EI). The conditional kernel reduces the number of samples
-    needed in the conditional space. It's implementation is based on [Lévesque2017].
+    This method uses scikit-learn's implementation of gaussian processes
+    with the addition of a conditional kernel when the provided space is conditional
+    [Lévesque2017]_. Two acquisition functions are made available, the Upper
+    Confidence Bound (UCB) and the Expected Improvement (EI).
     
     Args:
         connection: A database connection object.
         space: the search space to explore with only discrete dimensions.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
-            database and insert set the space to the provided one.
+            database andset set the space to the provided one.
         random_state: An instance of :class:`~numpy.random.RandomState`, an
             object to initialize the internal random state with, or None, in
             which case the global numpy random state is used.
         n_bootstrap: The number of random iteration done before using gaussian processes.
-        utility_function: The acquisition function used for the bayesian optimization. Two functions are implemented:
-            "ucb" and "ei".
+        utility_function (str): The acquisition function used for the bayesian optimization.
+            Two functions are implemented: "ucb" and "ei".
         kappa: Kappa parameter for the UCB acquisition function.
         xi: xi parameter for the EI acquisition function.
 
-    .. [Lévesque2017] Lévesque, Durand, Gagné and Sabourin. Bayesian Optimization for Conditional Hyperparameter 
-       Spaces. 2017
+    .. [Lévesque2017] Lévesque, Durand, Gagné and Sabourin. Bayesian Optimization for
+       Conditional Hyperparameter Spaces. 2017
     """
-    def __init__(self, connection, space, random_state=None, n_bootstrap=10, utility_function="ucb", kappa=2.756,
+    def __init__(self, connection, space, clear_db=False, random_state=None, n_bootstrap=10, utility_function="ucb", kappa=2.756,
                  xi=0.1):
 
-        super(GP, self).__init__(connection, space)
+        super(Bayes, self).__init__(connection, space, clear_db)
         self.k = None
         if len(self.space.subspaces()) > 1:
             self.k = kernels.ConditionalKernel()
@@ -100,7 +100,7 @@ class GP(SearchAlgorithm):
         dbdata = self.conn.all_results()
         X, y, Xpending = [], [], []
         for elem in dbdata:
-            if elem["_loss"]:
+            if "_loss" in elem and elem["_loss"] is not None:
                 X.append(elem)
                 y.append(-elem["_loss"])  # Negative because we maximize
             else:

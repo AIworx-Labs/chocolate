@@ -4,10 +4,10 @@ from unittest.mock import MagicMock
 import numpy
 from chocolate.space import *
 
-from chocolate import GP
+from chocolate import Bayes
 
 
-class TestGP(unittest.TestCase):
+class TestBayes(unittest.TestCase):
     def setUp(self):
         s = {
             "a": uniform(1, 10),
@@ -17,7 +17,7 @@ class TestGP(unittest.TestCase):
         self.mock_conn = MagicMock(name="connection")
         self.mock_conn.get_space.return_value = Space(s)
 
-        self.search = GP(self.mock_conn, s)
+        self.search = Bayes(self.mock_conn, s)
 
     def test_cold_start(self):
         self.mock_conn.all_results.return_value = []
