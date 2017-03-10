@@ -7,7 +7,7 @@ http://chocolate.readthedocs.io
 
 ## Installation
 
-pip install git+https://github.com/NovaSyst/chocolate@master
+`pip install git+https://github.com/NovaSyst/chocolate@master`
 
 ## Dependencies
 
