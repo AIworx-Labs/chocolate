@@ -3,7 +3,7 @@ A fully decentralized hyperparameter optimization framework
 
 ## Documentation
 
-chocolate.readthedocs.io
+http://chocolate.readthedocs.io
 
 ## Installation
 
