@@ -1,4 +1,58 @@
+"""This module provides common building blocks to define a search space.
 
+Search spaces are defined using dictionaries, where the keys are the parameter
+names and the values their distribution. For example, defining a two
+parameter search space is done as follow ::
+
+    space = {"x": uniform(-5, 5),
+             "y": quantized_uniform(-2, 3, 0.5)}
+
+A conditional search space can be seen as a tree, where each condition
+defines a subtree. For example, in the next figure, three search spaces
+are presented.
+
+.. image:: /images/search-space-tree.png
+   :width: 300px
+   :align: center
+
+The left tree is the simple two parameter search space defined earlier. The
+middle tree defines a conditional search space with a single root condition.
+Two subspaces exist in this search space, one when the condition is `a` the
+other when the condition is `b`. Defining such a search space is done using
+a list of dictionaries as follow ::
+
+    space = [{"cond": "a", "x": uniform(-5, 5)},
+             {"cond": "b", "y": quantized_uniform(-2, 3, 0.5)}]
+
+The right most tree has two conditions one at its root and another one when
+the root condition is `a`. It has a total of four subspaces. Defining such a
+search space is done using a hierarchy of dictionaries as follow ::
+
+    space = [{"cond": "a", "sub": {"c": {"x": uniform(-5, 5)},
+                                   "d": {"z": log(-5, 5, 10)},
+                                   "e": {"w": quantized_log(-2, 7, 1, 10)}}},
+             {"cond": "b", "y": quantized_uniform(-2, 3, 0.5)}
+
+Note that lists can only be used at the root of conditional search spaces,
+sub-conditions must use the dictionary form. Moreover, it is not necessary to
+use the same parameter name for root conditions. For example, the following
+is a valid search space ::
+
+    space = [{"cond": "a", "x": uniform(-5, 5)},
+             {"spam": "b", "y": quantized_uniform(-2, 3, 0.5)}]
+
+The only restriction is that each search space must have a unique combination
+of conditional parameters and values, where conditional parameters have
+non-distribution values. Finally, one and only one subspace can be defined
+without condition as follow ::
+
+    space = [{"x": uniform(-5, 5)},
+             {"cond": "b", "y": quantized_uniform(-2, 3, 0.5)}]
+
+If two or more subspaces share the same conditional key (set of parameters
+and values) an :class:`AssertionError` will be raised uppon building the
+search space specifying the erroneous key.
+"""
 from collections import OrderedDict, Mapping, Sequence
 from itertools import chain, count, islice, product, combinations
 
@@ -265,8 +319,8 @@ class Space(object):
         Here is how a simple search space can be defined and the parameters
         can be retrieved  ::
 
-            In [2]: s = Space({"learning_rate" : uniform(0.0005, 0.1),
-                               "n_estimators"  : quantized_uniform(1, 11, 1)})
+            In [2]: s = Space({"learning_rate": uniform(0.0005, 0.1),
+                               "n_estimators" : quantized_uniform(1, 11, 1)})
 
             In [3]: s([0.1, 0.7])
             Out[3]: {'learning_rate': 0.01045, 'n_estimators': 8}
@@ -280,10 +334,10 @@ class Space(object):
             
             In [3]: from sklearn.neighbors import KNeighborsClassifier
             
-            In [4]: s = Space([{"algo" : SVC, "kernel" : "linear",
-                                    "C" : log(low=-3, high=5, base=10)},
-                               {"algo" : KNeighborsClassifier, 
-                                    "n_neighbors" : quantized_uniform(low=1, high=20, step=1)}])
+            In [4]: s = Space([{"algo": SVC, "kernel": "linear",
+                                    "C": log(low=-3, high=5, base=10)},
+                               {"algo": KNeighborsClassifier,
+                                    "n_neighbors": quantized_uniform(low=1, high=20, step=1)}])
 
         The number of dimensions of such search space can be retrieved with
         the :func:`len` function. ::
@@ -311,12 +365,12 @@ class Space(object):
         next search space will share the ``C`` parameter amongst all SVMs, but
         will branch on the kernel type with their individual parameters. ::
             
-            In [2]: s = Space([{"algo" : "svm", 
-                                "C" : log(low=-3, high=5, base=10),
-                                "kernel" : {"linear" : None,
-                                            "rbf" : {"gamma" : log(low=-2, high=3, base=10)}}},
-                               {"algo" : "knn",
-                                    "n_neighbors" : quantized_uniform(low=1, high=20, step=1)}])
+            In [2]: s = Space([{"algo": "svm",
+                                "C": log(low=-3, high=5, base=10),
+                                "kernel": {"linear": None,
+                                            "rbf": {"gamma": log(low=-2, high=3, base=10)}}},
+                               {"algo": "knn",
+                                    "n_neighbors": quantized_uniform(low=1, high=20, step=1)}])
 
             In [3]: len(s)
             Out[3]: 5
@@ -352,7 +406,7 @@ class Space(object):
                         sorted_v = sorted(v.items(), key=str)
 
                     for sub_k, sub_v in sorted_v:
-                        s = {k : sub_k}
+                        s = {k: sub_k}
                         if isinstance(sub_v, Mapping):
                             s.update(sub_v)
                         elif sub_v is not None:
@@ -366,7 +420,7 @@ class Space(object):
                     ts_key.append((k, v))
 
             ts_key = tuple(ts_key)
-            assert ts_key not in self.spaces, "Duplicate key {} found in Space".format(ts_key)
+            assert ts_key not in self.spaces, "Duplicate conditiona key {} found in Space".format(ts_key)
             self.spaces[ts_key] = ts_space
 
             if len(self.spaces) > 1:
@@ -437,12 +491,12 @@ class Space(object):
             quickly what dimensions are active according to a given vector.
             For example, with the following conditional space ::
 
-                In [2]: s = Space([{"algo" : "svm", 
-                                    "C" : log(low=-3, high=5, base=10),
-                                    "kernel" : {"linear" : None,
-                                                "rbf" : {"gamma" : log(low=-2, high=3, base=10)}}},
-                                   {"algo" : "knn",
-                                        "n_neighbors" : quantized_uniform(low=1, high=20, step=1)}])
+                In [2]: s = Space([{"algo": "svm",
+                                    "C": log(low=-3, high=5, base=10),
+                                    "kernel": {"linear": None,
+                                                "rbf": {"gamma": log(low=-2, high=3, base=10)}}},
+                                   {"algo": "knn",
+                                        "n_neighbors": quantized_uniform(low=1, high=20, step=1)}])
                 In [3]: s.names()
                 Out[3]: 
                 ['_subspace',
@@ -513,8 +567,8 @@ class Space(object):
         Examples:
             If the length of the space is 2 as follow ::
 
-                In [2]: s = Space({"learning_rate" : uniform(0.0005, 0.1),
-                                   "n_estimators"  : quantized_uniform(1, 11, 1)})
+                In [2]: s = Space({"learning_rate": uniform(0.0005, 0.1),
+                                   "n_estimators" : quantized_uniform(1, 11, 1)})
 
                 In [3]: s.names()
                 Out[3]: ['learning_rate', 'n_estimators']
@@ -523,13 +577,13 @@ class Space(object):
             for the choice od subspace and four independent parameters) ::
 
 
-                In [4]: s = Space([{"algo" : "svm", "kernel" : "linear",
-                                        "C" : log(low=-3, high=5, base=10)},
-                                   {"algo" : "svm", "kernel" : "rbf",
-                                        "C" : log(low=-3, high=5, base=10),
-                                        "gamma" : log(low=-2, high=3, base=10)},
-                                   {"algo" : "knn", 
-                                        "n_neighbors" : quantized_uniform(low=1, high=20, step=1)}])
+                In [4]: s = Space([{"algo": "svm", "kernel": "linear",
+                                        "C": log(low=-3, high=5, base=10)},
+                                   {"algo": "svm", "kernel": "rbf",
+                                        "C": log(low=-3, high=5, base=10),
+                                        "gamma": log(low=-2, high=3, base=10)},
+                                   {"algo": "knn",
+                                        "n_neighbors": quantized_uniform(low=1, high=20, step=1)}])
 
                 In [5]: s.names()
                 Out[5]:
@@ -543,13 +597,13 @@ class Space(object):
             choices the output might be a little bit more verbose, however the
             names are still there. ::
 
-                In [6]: s = Space([{"algo" : SVC, 
-                                    "C" : log(low=-3, high=5, base=10),
-                                    "kernel" : {"linear" : None,
-                                                "rbf" : {"gamma" : log(low=-2, high=3, base=10)}}},
+                In [6]: s = Space([{"algo": SVC,
+                                    "C": log(low=-3, high=5, base=10),
+                                    "kernel": {"linear": None,
+                                                "rbf": {"gamma": log(low=-2, high=3, base=10)}}},
                                    
-                                   {"algo" : KNeighborsClassifier,
-                                        "n_neighbors" : quantized_uniform(low=1, high=20, step=1)}])
+                                   {"algo": KNeighborsClassifier,
+                                        "n_neighbors": quantized_uniform(low=1, high=20, step=1)}])
 
                 In [7]: s.names()
                 Out[7]:
@@ -629,12 +683,12 @@ class Space(object):
 
             ::
 
-                In [2]: s = Space([{"algo" : "svm", 
-                                    "C" : log(low=-3, high=5, base=10),
-                                    "kernel" : {"linear" : None,
-                                                "rbf" : {"gamma" : log(low=-2, high=3, base=10)}}},
-                                   {"algo" : "knn",
-                                        "n_neighbors" : quantized_uniform(low=1, high=20, step=1)}])
+                In [2]: s = Space([{"algo": "svm",
+                                    "C": log(low=-3, high=5, base=10),
+                                    "kernel": {"linear": None,
+                                                "rbf": {"gamma": log(low=-2, high=3, base=10)}}},
+                                   {"algo": "knn",
+                                        "n_neighbors": quantized_uniform(low=1, high=20, step=1)}])
 
                 In [3]: s.names()
                 Out[3]: 
@@ -714,34 +768,34 @@ if __name__ == "__main__":
     from sklearn.svm import SVC, LinearSVC
     from sklearn.neighbors import KNeighborsClassifier
 
-    space1 = {"a" : uniform(1, 2),
-              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
-                     "d" : {"d1" : quantized_log(0, 5, 1, 2)}}}
+    space1 = {"a": uniform(1, 2),
+              "b": {"c": {"c1": quantized_log(0, 5, 1, 10)},
+                     "d": {"d1": quantized_log(0, 5, 1, 2)}}}
 
-    space2 = {"a" : uniform(1, 2),
-              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
-                     "d" : {"d1" : quantized_log(0, 5, 1, 2)}}}
+    space2 = {"a": uniform(1, 2),
+              "b": {"c": {"c1": quantized_log(0, 5, 1, 10)},
+                     "d": {"d1": quantized_log(0, 5, 1, 2)}}}
 
-    space3 = {"a" : uniform(1, 2),
-              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
-                     "d" : {"d2" : quantized_log(0, 5, 1, 2)}}}
+    space3 = {"a": uniform(1, 2),
+              "b": {"c": {"c1": quantized_log(0, 5, 1, 10)},
+                     "d": {"d2": quantized_log(0, 5, 1, 2)}}}
 
-    space4 = {"a" : uniform(1, 2),
-              "b" : {"c" : {"c1" : quantized_log(0, 5, 1, 10)},
-                     "d" : {"d1" : quantized_log(0, 5, 1, 8)}}}
+    space4 = {"a": uniform(1, 2),
+              "b": {"c": {"c1": quantized_log(0, 5, 1, 10)},
+                     "d": {"d1": quantized_log(0, 5, 1, 8)}}}
 
     print(Space(space1) == Space(space2))
     print(Space(space1) == Space(space3))
     print(Space(space1) == Space(space4))
 
-    space = {"initial_learning_rate" : choice([0.0005]),
-             "learning_rate_decay" : choice([0.0004]),
-             "keep_prob" : choice([0.7, 0.9]),
-             "nout_c1" : quantized_log(low=0, high=3, step=1, base=2),
-             "nout_c2" : quantized_log(low=0, high=3, step=1, base=2),
-             "nout_fc1" : quantized_log(low=0, high=3, step=1, base=2),
-             "nout_fc2" : quantized_log(low=0, high=3, step=1, base=2),
-             "act_fn" : choice(["elu", "relu"])}
+    space = {"initial_learning_rate": choice([0.0005]),
+             "learning_rate_decay": choice([0.0004]),
+             "keep_prob": choice([0.7, 0.9]),
+             "nout_c1": quantized_log(low=0, high=3, step=1, base=2),
+             "nout_c2": quantized_log(low=0, high=3, step=1, base=2),
+             "nout_fc1": quantized_log(low=0, high=3, step=1, base=2),
+             "nout_fc2": quantized_log(low=0, high=3, step=1, base=2),
+             "act_fn": choice(["elu", "relu"])}
 
     s = Space(space)
     print(len(s))
@@ -758,11 +812,11 @@ if __name__ == "__main__":
 
 
     print("="*12)
-    space = [{"algo" : SVC, "kernel" : "rbf", "C" : uniform(low=0.001, high=10000), "gamma" : uniform(low=0, high=1)},
-             {"algo" : SVC, "kernel" : "linear", "C" : uniform(low=0.001, high=10000)},
-             {"algo" : KNeighborsClassifier, "n_neighbors" : quantized_uniform(low=1, high=20, step=1)},
-             {"algo" : "cnn", "num_layers" : 8, "n_units" : quantized_log(low=5, high=8, step=1, base=2)},
-             {"algo" : "cnn", "num_layers" : 4, "n_units" : quantized_log(low=5, high=12, step=1, base=2)}]
+    space = [{"algo": SVC, "kernel": "rbf", "C": uniform(low=0.001, high=10000), "gamma": uniform(low=0, high=1)},
+             {"algo": SVC, "kernel": "linear", "C": uniform(low=0.001, high=10000)},
+             {"algo": KNeighborsClassifier, "n_neighbors": quantized_uniform(low=1, high=20, step=1)},
+             {"algo": "cnn", "num_layers": 8, "n_units": quantized_log(low=5, high=8, step=1, base=2)},
+             {"algo": "cnn", "num_layers": 4, "n_units": quantized_log(low=5, high=12, step=1, base=2)}]
 
     s = Space(space)
     print(len(s))
@@ -777,13 +831,13 @@ if __name__ == "__main__":
     print(s.isactive(x))
 
     print("="*12)
-    space = [{"algo" : "svm",
-              "C" : log(low=-3, high=5, base=10),
-              "kernel" : {"linear" : None,
-                          "rbf" : {"gamma" : log(low=-2, high=3, base=10)}}},
+    space = [{"algo": "svm",
+              "C": log(low=-3, high=5, base=10),
+              "kernel": {"linear": None,
+                          "rbf": {"gamma": log(low=-2, high=3, base=10)}}},
 
-             {"algo" : "knn",
-                  "n_neighbors" : quantized_uniform(low=1, high=20, step=1)}]
+             {"algo": "knn",
+                  "n_neighbors": quantized_uniform(low=1, high=20, step=1)}]
 
     s = Space(space)
     print(len(s))
@@ -798,12 +852,12 @@ if __name__ == "__main__":
     print(s.isactive(x))
 
     print("="*12)
-    space = {"algo" : {"svm" : {"C" : log(low=-3, high=5, base=10),
-                              "kernel" : {"linear" : None,
-                                          "rbf" : {"gamma" : log(low=-2, high=3, base=10)}},
-                              "cond2" : {"aa" : None,
-                                          "bb" : {"abc" : uniform(low=-1, high=1)}}},
-                       "knn" : {"n_neighbors" : quantized_uniform(low=1, high=20, step=1)}}}
+    space = {"algo": {"svm": {"C": log(low=-3, high=5, base=10),
+                              "kernel": {"linear": None,
+                                          "rbf": {"gamma": log(low=-2, high=3, base=10)}},
+                              "cond2": {"aa": None,
+                                          "bb": {"abc": uniform(low=-1, high=1)}}},
+                       "knn": {"n_neighbors": quantized_uniform(low=1, high=20, step=1)}}}
 
     s = Space(space)
     print(len(s))
@@ -818,9 +872,9 @@ if __name__ == "__main__":
     print(s.isactive(x))
 
     print("="*12)
-    space = {"x1" : quantized_uniform(-5, 10, 2),
-             "cond" : {"log" : {"x2" : quantized_log(0, 2, 0.1, 2)},
-                       "uni" : {"x2" : quantized_uniform(0, 15, 2)}}}
+    space = {"x1": quantized_uniform(-5, 10, 2),
+             "cond": {"log": {"x2": quantized_log(0, 2, 0.1, 2)},
+                       "uni": {"x2": quantized_uniform(0, 15, 2)}}}
 
     s = Space(space)
     print(len(s))
@@ -836,12 +890,12 @@ if __name__ == "__main__":
 
 
     print("="*12)
-    space = {"algo" : {SVC : {"gamma" : log(low=-9, high=3, base=10)},
-                              "kernel" : {"rbf" : None,
-                                          "poly" : {"degree" : quantized_uniform(low=1, high=5, step=1),
-                                                    "coef0" : uniform(low=-1, high=1)}},
-                       LinearSVC : {"penalty" : choice(["l1", "l2"])}},
-             "C" : log(low=-2, high=10, base=10)}
+    space = {"algo": {SVC: {"gamma": log(low=-9, high=3, base=10)},
+                              "kernel": {"rbf": None,
+                                          "poly": {"degree": quantized_uniform(low=1, high=5, step=1),
+                                                    "coef0": uniform(low=-1, high=1)}},
+                       LinearSVC: {"penalty": choice(["l1", "l2"])}},
+             "C": log(low=-2, high=10, base=10)}
 
     s = Space(space)
     print(len(s))
@@ -853,14 +907,14 @@ if __name__ == "__main__":
 
 
     print("="*12)
-    space = [{"algo" : {SVC : {"gamma" : log(low=-9, high=3, base=10),
-                               "kernel" : {"rbf" : None,
-                                           "poly" : {"degree" : quantized_uniform(low=1, high=5,  step=1),
-                                                     "coef0" : uniform(low=-1, high=1)}}},
-                        LinearSVC : {"penalty" : choice(["l1", "l2"])}},
-              "C" : log(low=-2, high=10, base=10)},
+    space = [{"algo": {SVC: {"gamma": log(low=-9, high=3, base=10),
+                               "kernel": {"rbf": None,
+                                           "poly": {"degree": quantized_uniform(low=1, high=5,  step=1),
+                                                     "coef0": uniform(low=-1, high=1)}}},
+                        LinearSVC: {"penalty": choice(["l1", "l2"])}},
+              "C": log(low=-2, high=10, base=10)},
 
-             {"type" : "an_other_optimizer", "param" : uniform(low=-1, high=1)}]
+             {"type": "an_other_optimizer", "param": uniform(low=-1, high=1)}]
 
     s = Space(space)
     print(len(s))

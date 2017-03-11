@@ -33,8 +33,8 @@ s/generated/sklearn.datasets.make_classification.html>`_ it) ::
     X, y = make_classification(n_samples=80000, random_state=1)
 
 And just as in the :ref:`Basics` tutorial, we'll decide where the data is
-stored and the search space for the algorithm. We will optimize over a mix of
-continuous and discrete variables ::
+stored and the :ref:`search space <Search Space Representation>` for the
+algorithm. We will optimize over a mix of continuous and discrete variables ::
 
     conn = choco.SQLiteConnection(url="sqlite:///db.db")
     s = {"learning_rate" : choco.uniform(0.001, 0.1),

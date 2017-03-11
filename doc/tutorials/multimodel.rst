@@ -12,7 +12,8 @@ Independent Parameter Search
 Say we want to optimize the
 hyperparameters of `SVMs <http://scikit-learn.org/stable/modules/svm.html>`_
 with different kernels or even multiple types of SVMs. We would define the
-search space as a list of dictionaries, one for each model. ::
+:ref:`search space <Search Space Representation>`  as a list of dictionaries,
+one for each model. ::
 
     from sklearn.svm import SVC, LinearSVC
     import chocolate as choco
