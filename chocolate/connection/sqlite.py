@@ -26,9 +26,8 @@ class SQLiteConnection(Connection):
             <http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlite>`_.
             The url is parsed to find the database path. A lock file will be
             created in the same directory than the database. If in memory
-            database is used (``url = "sqlite:///"`` or ``url =
-            "sqlite:///:memory:"``) a lock file will be created in the current
-            working directory.
+            database (``url = "sqlite:///"`` or ``url = "sqlite:///:memory:"``)
+            are not allowed.
         result_table (str): Table used to store the experiences and their results.
         complementary_table (str): Table used to store complementary information necessary
             to the optimizer.
