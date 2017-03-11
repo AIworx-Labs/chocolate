@@ -1,7 +1,7 @@
 Basics
 ------
 
-Let strat with the very basics. Suppose you want to optimize the parameters of the himmelblau function
+Let start with the very basics. Suppose you want to optimize the parameters of the himmelblau function
 :math:`f(x, y) = (x^2 + y - 11)^2 + (x + y^2 - 7)^2` with Chocolate ::
 
     def himmelblau(x, y):
