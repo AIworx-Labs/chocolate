@@ -1,4 +1,3 @@
-
 from contextlib import contextmanager
 import pickle
 import re
@@ -8,6 +7,7 @@ import filelock
 import sqlalchemy
 
 from ..base import Connection
+
 
 class SQLiteConnection(Connection):
     """Connection to a SQLite database.
@@ -25,13 +25,16 @@ class SQLiteConnection(Connection):
             documentation
             <http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlite>`_.
             The url is parsed to find the database path. A lock file will be
-            created in the same directory than the database. If in memory
-            database (``url = "sqlite:///"`` or ``url = "sqlite:///:memory:"``)
+            created in the same directory than the database. In memory
+            databases (``url = "sqlite:///"`` or ``url = "sqlite:///:memory:"``)
             are not allowed.
         result_table (str): Table used to store the experiences and their results.
         complementary_table (str): Table used to store complementary information necessary
             to the optimizer.
         space_table (str): Table used to save the optimization :class:`Space`.
+
+    Raises:
+        RuntimeError: When an invalid name is given, see error message for precision.
     """
     def __init__(self, url, result_table="results", complementary_table="complementary", space_table="space"):
         super(SQLiteConnection, self).__init__()
@@ -67,7 +70,6 @@ class SQLiteConnection(Connection):
             # Initialize a result table and ensure float for loss
             results = db[self.result_table_name]
             results.create_column("_loss", sqlalchemy.Float)
-        
 
     @contextmanager
     def lock(self, timeout=-1, poll_interval=0.05):
@@ -127,7 +129,7 @@ class SQLiteConnection(Connection):
 
         Args:
             filter: A unique identifier of the row to update.
-            value: A mapping of values to update or add.
+            values: A mapping of values to update or add.
         """
         filter = filter.copy()
         keys = list(filter.keys())
@@ -171,7 +173,7 @@ class SQLiteConnection(Connection):
             if entry_count == 0:
                 return None
 
-            assert entry_count == 1, ("Space table unexpectedly contains more than one space.")
+            assert entry_count == 1, "Space table unexpectedly contains more than one space."
             return pickle.loads(tx[self.space_table_name].find_one()["space"])
 
     def insert_space(self, space):
@@ -182,8 +184,8 @@ class SQLiteConnection(Connection):
         """
         db = dataset.connect(self.url)
         assert db[self.space_table_name].count() == 0, ("Space table cannot contain more than one space, "
-            "clear table first.")
-        return db[self.space_table_name].insert({"space" : pickle.dumps(space)})
+                                                        "clear table first.")
+        return db[self.space_table_name].insert({"space": pickle.dumps(space)})
 
     def clear(self):
         """Clear all data from the database.
