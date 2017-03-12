@@ -49,7 +49,7 @@ class Connection(object):
         use this method while other experiments are still writing to the database.
 
         Returns:
-            :class:`pandas.DataFrame`: A DataFrame containing all results with its ``"_chocolate_id"`` as ``"id"``,
+            A :class:`pandas.DataFrame` containing all results with its ``"_chocolate_id"`` as ``"id"``,
             their parameters set to their mangled names and its loss. Pending results have a loss of :data:`None`.
         """
         with self.lock():

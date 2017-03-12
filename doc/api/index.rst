@@ -32,6 +32,7 @@ Library Reference
 
    SQLiteConnection
    MongoDBConnection
+   DataFrameConnection
 
 .. rubric:: :doc:`sample`
 

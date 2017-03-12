@@ -13,7 +13,7 @@ try:
 except ImportError:
     pymongo = None
 
-from chocolate import SQLiteConnection, MongoDBConnection, Space, uniform
+from chocolate import SQLiteConnection, MongoDBConnection, DataFrameConnection, Space, uniform
 
 if pymongo is not None:
     client = pymongo.MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=5)
@@ -187,3 +187,11 @@ class TestMongoDB(unittest.TestCase, Base):
 
     def tearDown(self):
         self.conn.client.drop_database(self.db_name)
+
+
+class TestDataFrame(unittest.TestCase, Base):
+    def setUp(self):
+        self.conn = DataFrameConnection()
+
+    def test_lock(self):
+        pass

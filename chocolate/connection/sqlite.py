@@ -166,7 +166,7 @@ class SQLiteConnection(Connection):
         """Returns the space used for previous experiments.
 
         Raises:
-        AssertionError: If there are more than one space in the database.
+            AssertionError: If there are more than one space in the database.
         """
         with dataset.connect(self.url) as tx:
             entry_count = tx[self.space_table_name].count()
