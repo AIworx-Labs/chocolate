@@ -9,9 +9,19 @@ from ..base import Connection
 class DataFrameConnection(Connection):
     """Connection to a pandas DataFrame.
 
-    This connection is absolutely not meant to be used in concurrent processes.
-    In fact, using this connection in different processes will result in two
-    independent searches **not** sharing any information.
+    This connection is meant for when it is not possible to use the file system
+    or other type of traditional database (e.g. a `Kaggle <http://kaggle.com>`_
+    script) and absolutely not in concurrent processes. In fact, using this
+    connection in different processes will result in two independent searches
+    **not** sharing any information.
+
+    Using this connection requires small adjustments to the proposed main
+    script. When the main process finishes, all data will vanish if not
+    explicitly writen to disk. Thus, instead of doing a single evaluation,
+    the main process will incorporate a loop calling the search/sample
+    ``next`` method multiple times. Additionally, at the end of the experiment,
+    either extract the best configuration using :meth:`results_as_dataframe`
+    or write all the data using :mod:`pickle`.
     """
     def __init__(self):
         self.results = pandas.DataFrame()

@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import pickle
 import tempfile
 import time
 import unittest
@@ -195,3 +196,25 @@ class TestDataFrame(unittest.TestCase, Base):
 
     def test_lock(self):
         pass
+
+    def test_pickle(self):
+        data = [{"abc": 0, "def": 2}, {"abc": 1}, {"def": 42, "abc": 67, "hij": 23}]
+        comp = [{"abc": 0, "def": 2}, {"abc": 1}, {"def": 42, "abc": 67, "hij": 23}]
+        space = {"a": uniform(1, 2),
+             "b": {"c": {"c1": uniform(0, 5)},
+                   "d": {"d1": uniform(0, 6)}}}
+
+        for d in data:
+            self.conn.insert_result(d)
+
+        for c in comp:
+            self.conn.insert_complementary(c)
+
+        self.conn.insert_space(Space(space))
+
+        s = pickle.dumps(self.conn)
+        l = pickle.loads(s)
+
+        self.assertEqual(self.conn.results.equals(l.results), True)
+        self.assertEqual(self.conn.complementary.equals(l.complementary), True)
+        self.assertEqual(l.space, self.conn.space)

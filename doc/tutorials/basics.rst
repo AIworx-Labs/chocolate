@@ -23,7 +23,7 @@ adaptors one :class:`~chocolate.SQLiteConnection` (which we prefer) and one
 
 .. note:: While the SQLite adaptor should be used when a common file system is
    available for all compute nodes, the MongoDB adaptor is more suited
-   when compute nodes cannot share such file system (i.e. Amazon EC2 spot
+   when compute nodes cannot share such file system (e.g. Amazon EC2 spot
    instances)
 
 When this overwhelming task is done, you'd choose from our :ref:`sampling
