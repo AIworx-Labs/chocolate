@@ -105,13 +105,13 @@ class MongoDBConnection(Connection):
         return self.results.insert_one(document)
 
     def update_result(self, token, values):
-        """Update or add *values* of a given document in the result table.
+        """Update or add *values* to given documents in the result table.
 
         Args:
-            token: A unique identifier of the document to update.
+            token: An identifier of the documents to update.
             value: A mapping of values to update or add.
         """
-        return self.results.update_one(token, {"$set" : values})
+        return self.results.update_many(token, {"$set" : values})
 
     def count_results(self):
         """Get the total number of entries in the result table.

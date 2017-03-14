@@ -125,10 +125,10 @@ class SQLiteConnection(Connection):
         return db[self.result_table_name].insert(document)
 
     def update_result(self, filter, values):
-        """Update or add *values* of a given row in the result table.
+        """Update or add *values* of given rows in the result table.
 
         Args:
-            filter: A unique identifier of the row to update.
+            filter: An identifier of the rows to update.
             values: A mapping of values to update or add.
         """
         filter = filter.copy()

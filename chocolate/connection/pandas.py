@@ -58,11 +58,11 @@ class DataFrameConnection(Connection):
         self.results = self.results.append(document, ignore_index=True)
 
     def update_result(self, document, value):
-        """Update or add *values* of a given row in the result data frame.
+        """Update or add *value* of given rows in the result data frame.
 
         Args:
-            filter: A unique identifier of the row to update.
-            values: A mapping of values to update or add.
+            document: An identifier of the rows to update.
+            value: A mapping of values to update or add.
         """
         size = len(self.results.index)
         selection = [True] * size
