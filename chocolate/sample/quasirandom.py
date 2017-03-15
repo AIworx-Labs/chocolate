@@ -1,4 +1,7 @@
-import ghalton
+try:
+    import ghalton
+except ImportError:
+    ghalton = False
 
 from ..base import SearchAlgorithm
 
@@ -79,3 +82,12 @@ class QuasiRandom(SearchAlgorithm):
             self.conn.insert_result(entry)
 
         return token, self.space(out)
+
+
+class _QuasiRandomFailedImport(QuasiRandom):
+    def __init__(self, *args, **kwargs):
+        raise ImportError("No module named 'ghalton' required for QuasiRandom.")
+
+
+if not ghalton:
+    QuasiRandom = _QuasiRandomFailedImport
