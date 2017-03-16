@@ -16,7 +16,8 @@ class MongoDBConnection(Connection):
 
     Args:
         url (str): Full url to the database including credentials but omitting the
-            database and the collection.
+            database and the collection. When using authenticated databases, the url must
+            contain the database and match the ``database`` argument.
         database (str): The database name in the MongoDB engine.
         result_col (str): Collection used to store the experiences and their
             results.
