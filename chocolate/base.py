@@ -1,9 +1,10 @@
-
 from collections import Mapping, Sequence
 
+import numpy
 import pandas
 
 from .space import Space 
+
 
 class Connection(object):
     """Abstract connection class that defines the database connection API.
@@ -73,7 +74,7 @@ class Connection(object):
         return df
 
 class SearchAlgorithm(object):
-    def __init__(self, connection, space=None, clear_db=False):
+    def __init__(self, connection, space=None, clear_db=False, random_state=None):
         if space is not None and not isinstance(space, Space):
             space = Space(space)
 
@@ -101,6 +102,12 @@ class SearchAlgorithm(object):
 
         self.space = space
 
+        if isinstance(random_state, numpy.random.RandomState):
+            self.random_state = random_state
+        elif random_state is None:
+            self.random_state = numpy.random
+        else:
+            self.random_state = numpy.random.RandomState(random_state)
 
     def update(self, token, values):
         """Update the loss of the parameters associated with *token*.

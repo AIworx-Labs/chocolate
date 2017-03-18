@@ -29,13 +29,7 @@ class Random(SearchAlgorithm):
             :data:`None` in which case the global state is used.
     """
     def __init__(self, connection, space, clear_db, random_state=None):
-        super(Random, self).__init__(connection, space, clear_db)
-        if isinstance(random_state, numpy.random.RandomState):
-            self.random_state = random_state
-        elif random_state is None:
-            self.random_state = numpy.random
-        else:
-            self.random_state = numpy.random.RandomState(random_state)
+        super(Random, self).__init__(connection, space, clear_db, random_state)
 
         # Check if all dimensions are discrete, in which case sampling
         # without replacement is possible

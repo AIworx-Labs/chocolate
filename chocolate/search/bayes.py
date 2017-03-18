@@ -35,8 +35,7 @@ class Bayes(SearchAlgorithm):
     """
     def __init__(self, connection, space, clear_db=False, random_state=None, n_bootstrap=10, utility_function="ucb", kappa=2.756,
                  xi=0.1):
-
-        super(Bayes, self).__init__(connection, space, clear_db)
+        super(Bayes, self).__init__(connection, space, clear_db, random_state)
         self.k = None
         if len(self.space.subspaces()) > 1:
             self.k = kernels.ConditionalKernel(self.space)
@@ -47,13 +46,6 @@ class Bayes(SearchAlgorithm):
         elif utility_function == "ei":
             self.utility = self._ei
             self.xi = xi
-
-        if isinstance(random_state, numpy.random.RandomState):
-            self.random_state = random_state
-        elif random_state is None:
-            self.random_state = numpy.random
-        else:
-            self.random_state = numpy.random.RandomState(random_state)
 
     def next(self):
         """Retrieve the next point to evaluate based on available data in the

@@ -6,7 +6,6 @@ import numpy
 from ..base import SearchAlgorithm
 
 
-# TODO: Use self random state
 class CMAES(SearchAlgorithm):
     """Covariance Matrix Adaptation Evolution Strategy minimization method.
 
@@ -69,15 +68,8 @@ class CMAES(SearchAlgorithm):
     """
 
     def __init__(self, connection, space, clear_db=False, random_state=None, **params):
-        super(CMAES, self).__init__(connection, space, clear_db)
+        super(CMAES, self).__init__(connection, space, clear_db, random_state)
         self.params = params
-
-        if isinstance(random_state, numpy.random.RandomState):
-            self.random_state = random_state
-        elif random_state is None:
-            self.random_state = numpy.random
-        else:
-            self.random_state = numpy.random.RandomState(random_state)
 
     def next(self):
         """Retrieve the next point to evaluate based on available data in the
@@ -110,7 +102,7 @@ class CMAES(SearchAlgorithm):
             # If the parent is still None, no information available
             if self.parent is None:
                 # out = numpy.ones(self.dim) / 2.0
-                out = numpy.random.rand(self.dim)
+                out = self.random_state.rand(self.dim)
 
                 # Signify the first point to others using loss set to None
                 # Transform to dict with parameter names
@@ -385,21 +377,21 @@ class CMAES(SearchAlgorithm):
         else:
             p = min(0.5, 0.1 + n_I_R / self.dim)
 
-        if n_I_R > 0 and numpy.random.rand() < p:
+        if n_I_R > 0 and self.random_state.rand() < p:
             Rp = numpy.zeros(self.dim)
             Rpp = numpy.zeros(self.dim)
 
             # Ri' has exactly one of its components set to one.
             # The Ri' are dependent in that the number of mutations for each coordinate
             # differs at most by one.
-            j = numpy.random.choice(self.i_I_R)
+            j = self.random_state.choice(self.i_I_R)
             Rp[j] = 1
-            Rpp[j] = numpy.random.geometric(p=0.7 ** (1.0 / n_I_R)) - 1
+            Rpp[j] = self.random_state.geometric(p=0.7 ** (1.0 / n_I_R)) - 1
 
-            I_pm1 = (-1) ** numpy.random.randint(0, 2, self.dim)
+            I_pm1 = (-1) ** self.random_state.randint(0, 2, self.dim)
             R_int = I_pm1 * (Rp + Rpp)
 
-        y = numpy.dot(numpy.random.standard_normal(self.dim), self.A.T)
+        y = numpy.dot(self.random_state.standard_normal(self.dim), self.A.T)
         arz = self.parent["X"] + self.sigma * y + self.S_int * R_int
 
         return arz, y

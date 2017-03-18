@@ -7,7 +7,6 @@ from ..base import SearchAlgorithm
 from ..connection.splitter import ConnectionSplitter, split_space, transform_suboutput
 
 
-# TODO: Use self random state
 class ThompsonSampling(SearchAlgorithm):
     """Thompson sampling wrapper to sample subspaces proportionally to their
     estimated quality. Each subspace of a conditional search space will be treated
@@ -39,7 +38,7 @@ class ThompsonSampling(SearchAlgorithm):
     """
     def __init__(self, algo, connection, space, clear_db=False, random_state=None,
                  gamma=0.9, epsilon=0.05, algo_params=None):
-        super(ThompsonSampling, self).__init__(connection, space, clear_db)
+        super(ThompsonSampling, self).__init__(connection, space, clear_db, random_state)
         self.arms = list()
         for i, cond_space in enumerate(split_space(self.space)):
             connection = ConnectionSplitter(self.conn, i, "_arm_id")
@@ -74,7 +73,7 @@ class ThompsonSampling(SearchAlgorithm):
 
     def _select_arm(self):
         """Select and return the next arm (as index) to play."""
-        return numpy.argmax([numpy.random.beta(s + 1, f + 1) for s, f in zip(self.success, self.failure)])
+        return numpy.argmax([self.random_state.beta(s + 1, f + 1) for s, f in zip(self.success, self.failure)])
 
     @property
     def _active_arms(self):
