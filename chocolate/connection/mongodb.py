@@ -101,8 +101,7 @@ class MongoDBConnection(Connection):
         return list(self.results.find(filter))
 
     def insert_result(self, document):
-        """Insert a new *document* in the result table.
-        """
+        """Insert a new *document* in the result table."""
         return self.results.insert_one(document)
 
     def update_result(self, token, values):
@@ -115,8 +114,7 @@ class MongoDBConnection(Connection):
         return self.results.update_many(token, {"$set" : values})
 
     def count_results(self):
-        """Get the total number of entries in the result table.
-        """
+        """Get the total number of entries in the result table."""
         return self.results.count()
 
     def all_complementary(self):
@@ -126,13 +124,11 @@ class MongoDBConnection(Connection):
         return list(self.complementary.find())
 
     def insert_complementary(self, document):
-        """Insert a new document in the complementary information table.
-        """
+        """Insert a new document in the complementary information table."""
         return self.complementary.insert_one(document)
 
     def find_complementary(self, filter):
-        """Find a document from the complementary information table.
-        """
+        """Find a document from the complementary information table."""
         return self.complementary.find_one(filter)
 
     def get_space(self):
@@ -159,14 +155,10 @@ class MongoDBConnection(Connection):
         return self.space.insert_one({"space" : pickle.dumps(space)})
 
     def clear(self):
-        """Clear all data from the database.
-        """
-        self.results.drop()
-        self.complementary.drop()
-        self.space.drop()
-        self.results = self.db[self.result_collection_name]
-        self.complementary = self.db[self.complementary_collection_name]
-        self.space = self.db[self.space_collection_name]
+        """Clear all data from the database."""
+        self.results.delete_many({})
+        self.complementary.delete_many({})
+        self.space.delete_many({})
 
 
 class _MongoDBConnectionFailedImport(MongoDBConnection):

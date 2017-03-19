@@ -21,9 +21,6 @@ class Bayes(SearchAlgorithm):
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
             database and set set the space to the provided one.
-        random_state: An instance of :class:`~numpy.random.RandomState`, an
-            object to initialize the internal random state with, or None, in
-            which case the global numpy random state is used.
         n_bootstrap: The number of random iteration done before using gaussian processes.
         utility_function (str): The acquisition function used for the bayesian optimization.
             Two functions are implemented: "ucb" and "ei".
@@ -33,9 +30,9 @@ class Bayes(SearchAlgorithm):
     .. [Lévesque2017] Lévesque, Durand, Gagné and Sabourin. Bayesian Optimization for
        Conditional Hyperparameter Spaces. 2017
     """
-    def __init__(self, connection, space, clear_db=False, random_state=None, n_bootstrap=10, utility_function="ucb", kappa=2.756,
+    def __init__(self, connection, space, clear_db=False, n_bootstrap=10, utility_function="ucb", kappa=2.756,
                  xi=0.1):
-        super(Bayes, self).__init__(connection, space, clear_db, random_state)
+        super(Bayes, self).__init__(connection, space, clear_db)
         self.k = None
         if len(self.space.subspaces()) > 1:
             self.k = kernels.ConditionalKernel(self.space)
@@ -46,6 +43,8 @@ class Bayes(SearchAlgorithm):
         elif utility_function == "ei":
             self.utility = self._ei
             self.xi = xi
+
+        self.random_state = numpy.random.RandomState()
 
     def next(self):
         """Retrieve the next point to evaluate based on available data in the

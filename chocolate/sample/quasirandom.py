@@ -28,7 +28,7 @@ class QuasiRandom(SearchAlgorithm):
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
             database and set the space to the provided one.
-        random_state: An integer used as seed to initialize the sequencer with or
+        seed: An integer used as seed to initialize the sequencer with or
             :data:`None` in which case the global state is used. This argument
             is ignored if :data:`permutations` if provided.
         permutations: Either, the string ``"ea"`` in which case the
@@ -38,15 +38,15 @@ class QuasiRandom(SearchAlgorithm):
             point is sampled.
 
     """
-    def __init__(self, connection, space, clear_db=False, random_state=None, permutations=None, skip=0):
+    def __init__(self, connection, space, clear_db=False, seed=None, permutations=None, skip=0):
         super(QuasiRandom, self).__init__(connection, space, clear_db)
         self.skip = skip
         if permutations == "ea":
             self.seq = ghalton.GeneralizedHalton(ghalton.EA_PERMS[:len(self.space)])
         elif permutations is not None:
             self.seq = ghalton.GeneralizedHalton(permutations)
-        elif random_state is not None:
-            self.seq = ghalton.GeneralizedHalton(len(self.space), random_state)
+        elif seed is not None:
+            self.seq = ghalton.GeneralizedHalton(len(self.space), seed)
         else:
             self.seq = ghalton.GeneralizedHalton(len(self.space))
 

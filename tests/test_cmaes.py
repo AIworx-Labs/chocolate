@@ -46,11 +46,8 @@ class TestCMAES(unittest.TestCase):
         self.assertIn("a", p)
 
     def test_bootstrap_high(self):
-        db = [{"_chocolate_id": 0, "a": 0, "b": 0, "_loss": 0.1},
-              {"_chocolate_id": 1, "a": 0.5, "b": 0.5, "_loss": 0.2},
-              {"_chocolate_id": 2, "a": 0.0, "b": 0.5, "_loss": 0.3},
-              {"_chocolate_id": 3, "a": 0.5, "b": 0.0, "_loss": 0.4},
-              {"_chocolate_id": 4, "a": 0.9, "b": 0.0, "_loss": 0.5}]
+        db = [{"_chocolate_id": i, "a": i * (1.0 / 30), "b": i * (1.0 / 30), "_loss": i * (1.0 / 30)} for i in
+              range(30)]
 
         self.mock_conn.all_results.return_value = db
         self.mock_conn.count_results.return_value = len(db)
@@ -59,7 +56,7 @@ class TestCMAES(unittest.TestCase):
         token, p = self.search.next()
 
         self.assertIn("_chocolate_id", token)
-        self.assertEqual(token["_chocolate_id"], 5)
+        self.assertEqual(token["_chocolate_id"], len(db))
 
         self.assertIn("a", p)
 

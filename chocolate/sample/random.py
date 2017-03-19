@@ -29,7 +29,7 @@ class Random(SearchAlgorithm):
             :data:`None` in which case the global state is used.
     """
     def __init__(self, connection, space, clear_db, random_state=None):
-        super(Random, self).__init__(connection, space, clear_db, random_state)
+        super(Random, self).__init__(connection, space, clear_db)
 
         # Check if all dimensions are discrete, in which case sampling
         # without replacement is possible
@@ -37,7 +37,14 @@ class Random(SearchAlgorithm):
         if self.space.isdiscrete():
             self.subspace_grids = ParameterGrid(self.space)
 
-        self.drawn = 0
+        if isinstance(random_state, numpy.random.RandomState):
+            self.random_state = random_state
+        elif random_state is None:
+            self.random_state = numpy.random
+        else:
+            self.random_state = numpy.random.RandomState(random_state)
+        self.rndrawn = 0
+
 
     def next(self):
         """Retrieve the next random point to test and add it to the database
@@ -62,15 +69,14 @@ class Random(SearchAlgorithm):
                 if i >= l:
                     raise StopIteration
                 
-                # Restore state by burning numbers
-                for _ in range(i - self.drawn):
-                    self.random_state.rand()
+                # Restore state
+                self._ffw_random_state(i - self.rndrawn)
                 
                 drawn = [doc["_chocolate_id"] for doc in self.conn.all_results()]
                 
                 choices = sorted(set(range(l)) - set(drawn))
                 sample = self.random_state.choice(choices)
-                self.drawn += i - self.drawn + 1
+                self.rndrawn += i - self.rndrawn + 1
                 
                 # Some dbs don't like numpy.int64
                 token = {"_chocolate_id": int(sample)}
@@ -79,12 +85,12 @@ class Random(SearchAlgorithm):
             else:
                 token = {"_chocolate_id": i}
 
-                # Restore state by burning numbers
-                self.random_state.rand(len(self.space), (i - self.drawn))
+                # Restore state
+                self._ffw_random_state(len(self.space), (i - self.rndrawn))
 
                 # Sample in [0, 1)^n
                 out = self.random_state.rand(len(self.space))
-                self.drawn += i - self.drawn + 1
+                self.rndrawn += i - self.rndrawn + 1
 
             # entry = {k : v for k, v in zip(self.space.names(), out)}
             entry = self.space(out, transform=False)

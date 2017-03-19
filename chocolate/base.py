@@ -74,6 +74,9 @@ class Connection(object):
         return df
 
 class SearchAlgorithm(object):
+    """Base class for search algorithms. Other than providing the :meth:`update` method
+    it ensures the provided space fits with the one int the database.
+    """
     def __init__(self, connection, space=None, clear_db=False, random_state=None):
         if space is not None and not isinstance(space, Space):
             space = Space(space)
@@ -102,12 +105,8 @@ class SearchAlgorithm(object):
 
         self.space = space
 
-        if isinstance(random_state, numpy.random.RandomState):
-            self.random_state = random_state
-        elif random_state is None:
-            self.random_state = numpy.random
-        else:
-            self.random_state = numpy.random.RandomState(random_state)
+    def _ffw_random_state(self, *n):
+        self.random_state.rand(*n)
 
     def update(self, token, values):
         """Update the loss of the parameters associated with *token*.
