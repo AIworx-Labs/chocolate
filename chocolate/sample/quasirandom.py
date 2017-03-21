@@ -50,7 +50,7 @@ class QuasiRandom(SearchAlgorithm):
         else:
             self.seq = ghalton.GeneralizedHalton(len(self.space))
 
-        self.drawn = 0
+        self.rndrawn = 0
 
     def next(self):
         """Retrieve the next quasi-random point to test and add it to the
@@ -68,11 +68,11 @@ class QuasiRandom(SearchAlgorithm):
             token = {"_chocolate_id": i}
 
             # Burn the first i + skip points
-            self.seq.get(self.skip + i - self.drawn)
+            self.seq.get(self.skip + i - self.rndrawn)
 
             # Sample in [0, 1)^n
             out = self.seq.get(1)[0]
-            self.drawn += i - self.drawn + 1
+            self.rndrawn += i - self.rndrawn + 1
 
             # Signify next point to others using loss set to None
             # entry = {k : v for k, v in zip(self.space.names(), out)}

@@ -45,7 +45,6 @@ class Random(SearchAlgorithm):
             self.random_state = numpy.random.RandomState(random_state)
         self.rndrawn = 0
 
-
     def next(self):
         """Retrieve the next random point to test and add it to the database
         with loss set to :data:`None`. On each call random points are burnt so

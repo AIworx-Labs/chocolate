@@ -4,13 +4,12 @@ from unittest.mock import MagicMock
 
 from hypothesis import given
 from hypothesis.strategies import floats
-import numpy
 
-from chocolate import Random
-from chocolate.space import Space, uniform, quantized_uniform
+from chocolate import QuasiRandom
+from chocolate.space import Space, uniform
 
 
-class TestRandom(unittest.TestCase):
+class TestQuasiRandom(unittest.TestCase):
     def setUp(self):
         self.space = {"a": uniform(1, 10),
                       "b": uniform(5, 15)}
@@ -18,7 +17,7 @@ class TestRandom(unittest.TestCase):
         self.mock_conn = MagicMock(name="connection")
         self.mock_conn.get_space.return_value = Space(self.space)
 
-        self.search = Random(self.mock_conn, self.space)
+        self.search = QuasiRandom(self.mock_conn, self.space)
 
     def test_cold_start(self):
         self.mock_conn.all_results.return_value = []
@@ -110,63 +109,38 @@ class TestRandom(unittest.TestCase):
         self.assertGreaterEqual(res[0][0]["a"], 0)
         self.assertLess(res[0][0]["a"], 1)
 
+    def test_permutation_ea(self):
+        self.mock_conn.all_results.return_value = []
+        self.mock_conn.count_results.return_value = 0
+
+        search = QuasiRandom(self.mock_conn, self.space, permutations="ea")
+        token, p = search.next()
+
+        self.assertIn("_chocolate_id", token)
+        self.assertEqual(token["_chocolate_id"], 0)
+
+        self.assertIn("a", p)
+
+    def test_permutations(self):
+        self.mock_conn.all_results.return_value = []
+        self.mock_conn.count_results.return_value = 0
+
+        search = QuasiRandom(self.mock_conn, self.space, permutations=((0, 1), (0, 2, 1)))
+        token, p = search.next()
+
+        self.assertIn("_chocolate_id", token)
+        self.assertEqual(token["_chocolate_id"], 0)
+
+        self.assertIn("a", p)
+
     def test_seed(self):
         self.mock_conn.all_results.return_value = []
         self.mock_conn.count_results.return_value = 0
 
-        search = Random(self.mock_conn, self.space, random_state=42)
+        search = QuasiRandom(self.mock_conn, self.space, seed=42)
         token, p = search.next()
 
         self.assertIn("_chocolate_id", token)
         self.assertEqual(token["_chocolate_id"], 0)
 
         self.assertIn("a", p)
-
-    def test_random_state(self):
-        self.mock_conn.all_results.return_value = []
-        self.mock_conn.count_results.return_value = 0
-
-        search = Random(self.mock_conn, self.space, random_state=numpy.random.RandomState(42))
-        token, p = search.next()
-
-        self.assertIn("_chocolate_id", token)
-        self.assertEqual(token["_chocolate_id"], 0)
-
-        self.assertIn("a", p)
-
-
-class TestDiscreteRandom(unittest.TestCase):
-    def setUp(self):
-        self.qa = quantized_uniform(0, 3, 1)
-        self.qb = quantized_uniform(1, 4, 1)
-        s = {"a": self.qa,
-             "b": self.qb}
-
-        self.mock_conn = MagicMock(name="connection")
-        self.mock_conn.get_space.return_value = Space(s)
-
-        self.space = Space(s)
-        self.search = Random(self.mock_conn, s)
-
-    def test_sample_all(self):
-        db = list()
-        self.mock_conn.all_results.return_value = db
-        self.mock_conn.count_results.return_value = len(db)
-
-        param_set = set()
-
-        for i, (token, params) in enumerate(iter(self.search.next, None)):
-            params.update(token)
-            param_set.add((params["a"], params["b"]))
-            db.append(params)
-            self.mock_conn.count_results.return_value = len(db)
-
-        print(db)
-
-        prod = list(self.space(p) for p in product(list(self.qa), list(self.qb)))
-        prod_set = set((p["a"], p["b"]) for p in prod)
-
-        print(prod)
-
-        self.assertEqual(len(db), len(prod))
-        self.assertEqual(param_set, prod_set)
