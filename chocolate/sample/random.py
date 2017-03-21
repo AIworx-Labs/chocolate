@@ -28,7 +28,7 @@ class Random(SearchAlgorithm):
             object to initialize the random state with or
             :data:`None` in which case the global state is used.
     """
-    def __init__(self, connection, space, clear_db, random_state=None):
+    def __init__(self, connection, space, clear_db=False, random_state=None):
         super(Random, self).__init__(connection, space, clear_db)
 
         # Check if all dimensions are discrete, in which case sampling
@@ -85,6 +85,7 @@ class Random(SearchAlgorithm):
             else:
                 token = {"_chocolate_id": i}
 
+                print(i, self.rndrawn, i - self.rndrawn)
                 # Restore state
                 self._ffw_random_state(len(self.space), (i - self.rndrawn))
 
