@@ -121,19 +121,7 @@ class TestSplitter(unittest.TestCase):
     def test_update_result(self):
         entry = {"_chocolate_id": 0, "a": 1}
         value = 3
-        self.conn1.update_result(entry, value)
-
-        call_arg = entry.copy()
-        call_arg[self.split_col] = 0
-        self.mock_conn.update_result.assert_called_with(call_arg, value)
-
-        entry = {"_chocolate_id": 0, "a": 1}
-        value = 3
-        self.conn2.update_result(entry, value)
-
-        call_arg = entry.copy()
-        call_arg[self.split_col] = 1
-        self.mock_conn.update_result.assert_called_with(call_arg, value)
+        self.assertRaises(RuntimeError, self.conn1.update_result, entry, value)
 
     def test_count_results(self):
         db0 = [{"_chocolate_id": 0, "a": 0.1, "b": 0.0, "_loss": 6, self.split_col: 0},
@@ -197,27 +185,3 @@ class TestSplitter(unittest.TestCase):
         call_arg = filter_.copy()
         call_arg[self.split_col] = 1
         self.mock_conn.find_complementary.assert_called_with(call_arg)
-
-    def test_get_space(self):
-        s = {"a": uniform(1, 2),
-             "b": {"c": {"c1": uniform(0, 5)},
-                   "d": {"d1": uniform(0, 6)}}}
-        space = Space(s)
-
-        self.mock_conn.get_space.return_value = space
-
-        self.assertEqual(space, self.conn1.get_space())
-        self.assertEqual(space, self.conn2.get_space())
-
-    def test_insert_space(self):
-        s = {"a": uniform(1, 2),
-             "b": {"c": {"c1": uniform(0, 5)},
-                   "d": {"d1": uniform(0, 6)}}}
-        space = Space(s)
-
-        self.assertRaises(NotImplementedError, self.conn1.insert_space, space)
-        self.assertRaises(NotImplementedError, self.conn2.insert_space, space)
-
-    def test_clear(self):
-        self.conn1.clear()
-        self.mock_conn.clear.assert_called_once_with()

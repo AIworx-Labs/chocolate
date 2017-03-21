@@ -51,7 +51,7 @@ class Connection(object):
 
         Returns:
             A :class:`pandas.DataFrame` containing all results with its ``"_chocolate_id"`` as ``"id"``,
-            their parameters set to their mangled names and its loss. Pending results have a loss of :data:`None`.
+            their parameters and its loss. Pending results have a loss of :data:`None`.
         """
         with self.lock():
             s = self.get_space()
@@ -77,7 +77,7 @@ class SearchAlgorithm(object):
     """Base class for search algorithms. Other than providing the :meth:`update` method
     it ensures the provided space fits with the one int the database.
     """
-    def __init__(self, connection, space=None, clear_db=False, random_state=None):
+    def __init__(self, connection, space=None, clear_db=False):
         if space is not None and not isinstance(space, Space):
             space = Space(space)
 

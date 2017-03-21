@@ -38,7 +38,7 @@ class ThompsonSampling(SearchAlgorithm):
     """
     def __init__(self, algo, connection, space, clear_db=False, random_state=None,
                  gamma=0.9, epsilon=0.05, algo_params=None):
-        super(ThompsonSampling, self).__init__(connection, space, clear_db, random_state)
+        super(ThompsonSampling, self).__init__(connection, space, clear_db)
         self.arms = list()
         for i, cond_space in enumerate(split_space(self.space)):
             connection = ConnectionSplitter(self.conn, i, "_arm_id")
@@ -46,6 +46,13 @@ class ThompsonSampling(SearchAlgorithm):
 
         self.gamma = gamma
         self.epsilon = epsilon
+
+        if isinstance(random_state, numpy.random.RandomState):
+            self.random_state = random_state
+        elif random_state is None:
+            self.random_state = numpy.random
+        else:
+            self.random_state = numpy.random.RandomState(random_state)
 
     def _init(self):
         self.emar = [0.5] * len(self.arms)
@@ -112,4 +119,5 @@ class ThompsonSampling(SearchAlgorithm):
                     if len(self._active_arms) == 0:
                         raise
                 else:
+                    token.update({"_arm_id": idx})
                     return token, transform_suboutput(params, self.space)

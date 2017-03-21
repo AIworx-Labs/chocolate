@@ -92,9 +92,7 @@ class ConnectionSplitter(Connection):
         return self.connection.insert_result(entry)
 
     def update_result(self, token, value):
-        token = token.copy()
-        token[self.split_col] = self.id
-        return self.connection.update_result(token, value)
+        raise RuntimeError("Cannot update result from splitted connection")
 
     def count_results(self):
         return len(self.all_results())
@@ -114,7 +112,13 @@ class ConnectionSplitter(Connection):
         return self.connection.find_complementary(filter)
 
     def get_space(self):
-        return self.connection.get_space()
+        # Splitter is not responsible of the space
+        return None
+
+    def insert_space(self, space):
+        # Splitter is not responsible of the space
+        pass
 
     def clear(self):
-        return self.connection.clear()
+        # Splitter is not responsible of the space
+        pass
