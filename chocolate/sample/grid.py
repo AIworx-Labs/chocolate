@@ -60,11 +60,11 @@ class Grid(SearchAlgorithm):
             provided space and the space in the database, completely clear the
             database and set the space to the provided one.
     """
-    def __init__(self, connection, space, clear_db=False):
-        super(Grid, self).__init__(connection, space, clear_db)
+    def __init__(self, connection, space, crossvalidation=None, clear_db=False):
+        super(Grid, self).__init__(connection, space, crossvalidation, clear_db)
         self.grid = ParameterGrid(self.space)
 
-    def next(self):
+    def _next(self):
         """Sample the next point on the grid and add it to the database
         with loss set to :data:`None`.
 

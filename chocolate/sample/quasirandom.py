@@ -38,8 +38,8 @@ class QuasiRandom(SearchAlgorithm):
             point is sampled.
 
     """
-    def __init__(self, connection, space, clear_db=False, seed=None, permutations=None, skip=0):
-        super(QuasiRandom, self).__init__(connection, space, clear_db)
+    def __init__(self, connection, space, crossvalidation=None, clear_db=False, seed=None, permutations=None, skip=0):
+        super(QuasiRandom, self).__init__(connection, space, crossvalidation, clear_db)
         self.skip = skip
         if permutations == "ea":
             self.seq = ghalton.GeneralizedHalton(ghalton.EA_PERMS[:len(self.space)])
@@ -52,7 +52,7 @@ class QuasiRandom(SearchAlgorithm):
 
         self.rndrawn = 0
 
-    def next(self):
+    def _next(self):
         """Retrieve the next quasi-random point to test and add it to the
         database with loss set to :data:`None`. On each call random points are
         burnt so that two random samplings running concurrently with the same

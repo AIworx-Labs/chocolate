@@ -64,12 +64,12 @@ class CMAES(SearchAlgorithm):
         Optimisation. 2012
     """
 
-    def __init__(self, connection, space, clear_db=False, **params):
-        super(CMAES, self).__init__(connection, space, clear_db)
+    def __init__(self, connection, space, crossvalidation=None, clear_db=False, **params):
+        super(CMAES, self).__init__(connection, space, crossvalidation, clear_db)
         self.random_state = numpy.random.RandomState()
         self.params = params
 
-    def next(self):
+    def _next(self):
         """Retrieve the next point to evaluate based on available data in the
         database. Each time :meth:`next` is called, the algorithm will reinitialize
         it-self based on the data in the database.

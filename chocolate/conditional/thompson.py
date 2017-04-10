@@ -36,9 +36,9 @@ class ThompsonSampling(SearchAlgorithm):
        Thompson sampling", in Advances in Neural Information Processing
        Systems 24 (NIPS), 2011.
     """
-    def __init__(self, algo, connection, space, clear_db=False, random_state=None,
+    def __init__(self, algo, connection, space, crossvalidation=None, clear_db=False, random_state=None,
                  gamma=0.9, epsilon=0.05, algo_params=None):
-        super(ThompsonSampling, self).__init__(connection, space, clear_db)
+        super(ThompsonSampling, self).__init__(connection, space, crossvalidation, clear_db)
         self.arms = list()
         for i, cond_space in enumerate(split_space(self.space)):
             connection = ConnectionSplitter(self.conn, i, "_arm_id")
@@ -87,7 +87,7 @@ class ThompsonSampling(SearchAlgorithm):
         """Returns a list of active arms"""
         return [self.arms[idx] for idx in self.arm_idx]
 
-    def next(self):
+    def _next(self):
         """Retrieve the next point to evaluate based on available data in the
         database. Each time :meth:`next` is called, the algorithm will reinitialize
         it-self based on the data in the database.

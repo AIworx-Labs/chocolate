@@ -30,9 +30,9 @@ class Bayes(SearchAlgorithm):
     .. [Lévesque2017] Lévesque, Durand, Gagné and Sabourin. Bayesian Optimization for
        Conditional Hyperparameter Spaces. 2017
     """
-    def __init__(self, connection, space, clear_db=False, n_bootstrap=10, utility_function="ucb", kappa=2.756,
+    def __init__(self, connection, space, crossvalidation=None, clear_db=False, n_bootstrap=10, utility_function="ucb", kappa=2.756,
                  xi=0.1):
-        super(Bayes, self).__init__(connection, space, clear_db)
+        super(Bayes, self).__init__(connection, space, crossvalidation, clear_db)
         self.k = None
         if len(self.space.subspaces()) > 1:
             self.k = kernels.ConditionalKernel(self.space)
@@ -46,14 +46,7 @@ class Bayes(SearchAlgorithm):
 
         self.random_state = numpy.random.RandomState()
 
-    def next(self):
-        """Retrieve the next point to evaluate based on available data in the
-        database. Each time :meth:`next` is called, the algorihtm will reinitialize
-        it-self and rerun completely.
-
-        Returns:
-            A tuple containing a unique token and a fully qualified parameter set.
-        """
+    def _next(self):
         with self.conn.lock():
             X, Xpending, y = self._load_database()
             token = {"_chocolate_id": len(X) + len(Xpending)}
@@ -61,14 +54,16 @@ class Bayes(SearchAlgorithm):
                 out = self.random_state.random_sample((len(list(self.space.names())),))
                 # Signify the first point to others using loss set to None
                 # Transform to dict with parameter names
-                entry = {str(k): v for k, v in zip(self.space.names(), out)}
+                # entry = {str(k): v for k, v in zip(self.space.names(), out)}
+                entry = self.space(out, transform=False)
                 entry.update(token)
                 self.conn.insert_result(entry)
                 return token, self.space(out)
 
             gp, y = self._fit_gp(X, Xpending, y)
             out = self._acquisition(gp, y)
-            entry = {str(k): v for k, v in zip(self.space.names(), out)}
+            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
+            entry = self.space(out, transform=False)
             entry.update(token)
             self.conn.insert_result(entry)
 

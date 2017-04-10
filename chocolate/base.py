@@ -1,4 +1,4 @@
-from collections import Mapping, Sequence
+from collections import Mapping, Sequence, defaultdict
 
 import numpy
 import pandas
@@ -73,11 +73,70 @@ class Connection(object):
         df.drop("id", inplace=True, axis=1)
         return df
 
+
+class RepeatCrossValidation(object):
+    def __init__(self, repetitions, reduce=numpy.mean, rep_col="_repetition"):
+        self.repetitions = repetitions
+        self.reduce = reduce
+        self.rep_col = rep_col
+        self.space = None
+
+    def _wrap_connection(self, connection):
+        self.conn = connection
+        self.orig_all_results = connection.all_results
+        connection.all_results = self.all_results
+
+    def all_results(self):
+        results = self.orig_all_results()
+        reduced_results = list()
+        for result_group in self.group_repetitions(results):
+            losses = [r["_loss"] for r in result_group if r["_loss"] is not None]
+            if len(losses) > 0:
+                result = result_group[0]
+                result["_loss"] = self.reduce(losses)
+                reduced_results.append(result)
+            else:
+                reduced_results.append(result_group[0])
+
+        return reduced_results
+
+    def next(self):
+        """Has to be called inside a lock
+        
+        Returns:
+
+        """
+        if self.repetitions > 1:
+            if self.space is None:
+                self.space = self.conn.get_space()
+
+            results = self.orig_all_results()
+            for result_group in self.group_repetitions(results):
+                if len(result_group) < self.repetitions:
+                    vec = [result_group[0][k] for k in self.space.names()]
+                    token = {self.rep_col: len(result_group), "_chocolate_id": result_group[0]["_chocolate_id"]}
+                    entry = result_group[0].copy()
+                    entry.update(token)
+                    self.conn.insert_result(entry)
+                    return token, self.space(vec)
+
+            return {self.rep_col: 1}, None
+
+        return {}, None
+
+    def group_repetitions(self, results):
+        grouped = defaultdict(list)
+        for row in results:
+            grouped[row["_chocolate_id"]].append(row)
+
+        return grouped.values()
+
+
 class SearchAlgorithm(object):
     """Base class for search algorithms. Other than providing the :meth:`update` method
     it ensures the provided space fits with the one int the database.
     """
-    def __init__(self, connection, space=None, clear_db=False):
+    def __init__(self, connection, space=None, crossvalidation=None, clear_db=False):
         if space is not None and not isinstance(space, Space):
             space = Space(space)
 
@@ -105,8 +164,10 @@ class SearchAlgorithm(object):
 
         self.space = space
 
-    def _ffw_random_state(self, *n):
-        self.random_state.rand(*n)
+        self.crossvalidation = crossvalidation
+        if self.crossvalidation is not None:
+            self.crossvalidation = crossvalidation
+            self.crossvalidation._wrap_connection(connection)
 
     def update(self, token, values):
         """Update the loss of the parameters associated with *token*.
@@ -145,3 +206,21 @@ class SearchAlgorithm(object):
                 result.append(r)
             
         return result
+
+    def next(self):
+        """Retrieve the next point to evaluate based on available data in the
+        database.
+        
+        Returns:
+            A tuple containing a unique token and a fully qualified parameter set.
+        """
+        if self.crossvalidation is not None:
+            reps, params = self.crossvalidation.next()
+            if reps is not None and params is not None:
+                return reps, params
+            elif reps is not None and params is None:
+                token, params = self._next()
+                token.update(reps)
+                return token, params
+
+        return self._next()

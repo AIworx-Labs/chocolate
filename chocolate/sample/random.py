@@ -28,8 +28,8 @@ class Random(SearchAlgorithm):
             object to initialize the random state with or
             :data:`None` in which case the global state is used.
     """
-    def __init__(self, connection, space, clear_db=False, random_state=None):
-        super(Random, self).__init__(connection, space, clear_db)
+    def __init__(self, connection, space, crossvalidation=None, clear_db=False, random_state=None):
+        super(Random, self).__init__(connection, space, crossvalidation, clear_db)
 
         # Check if all dimensions are discrete, in which case sampling
         # without replacement is possible
@@ -45,7 +45,7 @@ class Random(SearchAlgorithm):
             self.random_state = numpy.random.RandomState(random_state)
         self.rndrawn = 0
 
-    def next(self):
+    def _next(self):
         """Retrieve the next random point to test and add it to the database
         with loss set to :data:`None`. On each call random points are burnt so
         that two random sampling running concurrently with the same random
@@ -69,7 +69,7 @@ class Random(SearchAlgorithm):
                     raise StopIteration
                 
                 # Restore state
-                self._ffw_random_state(i - self.rndrawn)
+                self.random_state.rand(i - self.rndrawn)
                 
                 drawn = [doc["_chocolate_id"] for doc in self.conn.all_results()]
                 
@@ -85,7 +85,7 @@ class Random(SearchAlgorithm):
                 token = {"_chocolate_id": i}
 
                 # Restore state
-                self._ffw_random_state(len(self.space), (i - self.rndrawn))
+                self.random_state.rand(len(self.space), (i - self.rndrawn))
 
                 # Sample in [0, 1)^n
                 out = self.random_state.rand(len(self.space))

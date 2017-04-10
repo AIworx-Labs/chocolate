@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import pickle
 
 import numpy
 import pandas
@@ -9,9 +10,9 @@ from ..base import Connection
 class DataFrameConnection(Connection):
     """Connection to a pandas DataFrame.
 
-    This connection is meant for when it is not possible to use the file system
+    This connection is meant when it is not possible to use the file system
     or other type of traditional database (e.g. a `Kaggle <http://kaggle.com>`_
-    script) and absolutely not in concurrent processes. In fact, using this
+    scripts) and absolutely not in concurrent processes. In fact, using this
     connection in different processes will result in two independent searches
     **not** sharing any information.
 
@@ -23,10 +24,22 @@ class DataFrameConnection(Connection):
     either extract the best configuration using :meth:`results_as_dataframe`
     or write all the data using :mod:`pickle`.
     """
-    def __init__(self):
-        self.results = pandas.DataFrame()
-        self.complementary = pandas.DataFrame()
-        self.space = None
+    def __init__(self, from_file=None):
+        if from_file is not None:
+            with open(from_file, "rb") as f:
+                conn = pickle.load(f.read())
+
+            if type(conn) != DataFrameConnection:
+                raise TypeError("Unpickled connection is not of type DataFrameConnection")
+
+            self.results = conn.results
+            self.complementary = conn.complementary
+            self.space = conn.space
+
+        else:
+            self.results = pandas.DataFrame()
+            self.complementary = pandas.DataFrame()
+            self.space = None
 
     @contextmanager
     def lock(self, *args, **kwargs):
