@@ -64,8 +64,21 @@ def transform_suboutput(subout, space):
 
 
 class ConnectionSplitter(Connection):
-    """
-
+    """Splits the data sent to a single connection just like it was in separate tables
+    using a split id. One ConnectionSplitter is required by split.
+    
+    Example:
+        To split a connection in 3 separate groups ::
+            
+            for i in range(3):
+                splitted_connection = ConnectionSplitter(orig_connection, i, "_split_id")
+        
+        Then use the splitted connections in the rest of the algorithm.
+    
+    Args:
+        connection: The original database connection to split.
+        id: The unique id of this split.
+        split_col: The column name to use as a split.
     """
     def __init__(self, connection, id, split_col):
         self.connection = connection
