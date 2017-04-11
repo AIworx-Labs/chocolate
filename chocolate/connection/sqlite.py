@@ -196,3 +196,8 @@ class SQLiteConnection(Connection):
         db[self.space_table_name].drop()
         results = db[self.result_table_name]
         results.create_column("_loss", sqlalchemy.Float)
+
+    def pop_id(self, document):
+        """Pops the database unique id from the document."""
+        document.pop("id", None)
+        return document

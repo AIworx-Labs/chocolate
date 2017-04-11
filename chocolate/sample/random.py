@@ -45,7 +45,7 @@ class Random(SearchAlgorithm):
             self.random_state = numpy.random.RandomState(random_state)
         self.rndrawn = 0
 
-    def _next(self):
+    def _next(self, token=None):
         """Retrieve the next random point to test and add it to the database
         with loss set to :data:`None`. On each call random points are burnt so
         that two random sampling running concurrently with the same random
@@ -61,6 +61,7 @@ class Random(SearchAlgorithm):
         """
         with self.conn.lock():
             i = self.conn.count_results()
+            token = token or {}
 
             if self.subspace_grids is not None:
                 # Sample without replacement
@@ -78,11 +79,11 @@ class Random(SearchAlgorithm):
                 self.rndrawn += i - self.rndrawn + 1
                 
                 # Some dbs don't like numpy.int64
-                token = {"_chocolate_id": int(sample)}
+                token.update({"_chocolate_id": int(sample)})
                 out = self.subspace_grids[sample]
 
             else:
-                token = {"_chocolate_id": i}
+                token.update({"_chocolate_id": i})
 
                 # Restore state
                 self.random_state.rand(len(self.space), (i - self.rndrawn))

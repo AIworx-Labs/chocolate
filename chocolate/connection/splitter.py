@@ -135,3 +135,7 @@ class ConnectionSplitter(Connection):
     def clear(self):
         # Splitter is not responsible of the space
         pass
+
+    def pop_id(self, document):
+        """Pops the database unique id from the row."""
+        return self.connection.pop_id(document)

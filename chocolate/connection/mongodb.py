@@ -102,7 +102,7 @@ class MongoDBConnection(Connection):
 
     def insert_result(self, document):
         """Insert a new *document* in the result table."""
-        return self.results.insert_one(document)
+        return self.results.insert_one(document.copy())
 
     def update_result(self, token, values):
         """Update or add *values* to given documents in the result table.
@@ -125,7 +125,7 @@ class MongoDBConnection(Connection):
 
     def insert_complementary(self, document):
         """Insert a new document in the complementary information table."""
-        return self.complementary.insert_one(document)
+        return self.complementary.insert_one(document.copy())
 
     def find_complementary(self, filter):
         """Find a document from the complementary information table."""
@@ -159,6 +159,11 @@ class MongoDBConnection(Connection):
         self.results.delete_many({})
         self.complementary.delete_many({})
         self.space.delete_many({})
+
+    def pop_id(self, document):
+        """Pops the database unique id from the document."""
+        document.pop("_id", None)
+        return document
 
 
 class _MongoDBConnectionFailedImport(MongoDBConnection):

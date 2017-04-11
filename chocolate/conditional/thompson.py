@@ -87,7 +87,7 @@ class ThompsonSampling(SearchAlgorithm):
         """Returns a list of active arms"""
         return [self.arms[idx] for idx in self.arm_idx]
 
-    def _next(self):
+    def _next(self, token=None):
         """Retrieve the next point to evaluate based on available data in the
         database. Each time :meth:`next` is called, the algorithm will reinitialize
         it-self based on the data in the database.
@@ -113,7 +113,7 @@ class ThompsonSampling(SearchAlgorithm):
             while True:
                 idx = self.arm_idx[self._select_arm()]
                 try:
-                    token, params = self.arms[idx].next()
+                    token, params = self.arms[idx]._next(token)
                 except StopIteration:
                     self._remove_arm(idx)
                     if len(self._active_arms) == 0:

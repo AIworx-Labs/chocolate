@@ -69,7 +69,7 @@ class CMAES(SearchAlgorithm):
         self.random_state = numpy.random.RandomState()
         self.params = params
 
-    def _next(self):
+    def _next(self, token=None):
         """Retrieve the next point to evaluate based on available data in the
         database. Each time :meth:`next` is called, the algorithm will reinitialize
         it-self based on the data in the database.
@@ -95,7 +95,8 @@ class CMAES(SearchAlgorithm):
                 self.parent = next((a for a in ancestors if a["loss"] is not None), None)
 
             # Generate the next point
-            token = {"_chocolate_id": self.conn.count_results()}
+            token = token or {}
+            token.update({"_chocolate_id": self.conn.count_results()})
 
             # If the parent is still None, no information available
             if self.parent is None:

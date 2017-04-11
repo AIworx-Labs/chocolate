@@ -52,7 +52,7 @@ class QuasiRandom(SearchAlgorithm):
 
         self.rndrawn = 0
 
-    def _next(self):
+    def _next(self, token=None):
         """Retrieve the next quasi-random point to test and add it to the
         database with loss set to :data:`None`. On each call random points are
         burnt so that two random samplings running concurrently with the same
@@ -65,7 +65,8 @@ class QuasiRandom(SearchAlgorithm):
         """
         with self.conn.lock():
             i = self.conn.count_results()
-            token = {"_chocolate_id": i}
+            token = token or {}
+            token.update({"_chocolate_id": i})
 
             # Burn the first i + skip points
             self.seq.get(self.skip + i - self.rndrawn)

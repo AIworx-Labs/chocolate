@@ -126,3 +126,7 @@ class DataFrameConnection(Connection):
         self.results = pandas.DataFrame()
         self.complementary = pandas.DataFrame()
         self.space = None
+
+    def pop_id(self, document):
+        """Pops the database unique id from the document."""
+        return document

@@ -64,7 +64,7 @@ class Grid(SearchAlgorithm):
         super(Grid, self).__init__(connection, space, crossvalidation, clear_db)
         self.grid = ParameterGrid(self.space)
 
-    def _next(self):
+    def _next(self, token=None):
         """Sample the next point on the grid and add it to the database
         with loss set to :data:`None`.
 
@@ -78,7 +78,8 @@ class Grid(SearchAlgorithm):
         with self.conn.lock():
             i = self.conn.count_results()
             if i < len(self.grid):
-                token = {"_chocolate_id": i}
+                token = token or {}
+                token.update({"_chocolate_id": i})
                 # Sample next point in [0, 1)^n
                 out = self.grid[i]
                 

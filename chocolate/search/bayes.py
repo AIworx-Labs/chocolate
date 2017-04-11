@@ -46,10 +46,11 @@ class Bayes(SearchAlgorithm):
 
         self.random_state = numpy.random.RandomState()
 
-    def _next(self):
+    def _next(self, token=None):
         with self.conn.lock():
             X, Xpending, y = self._load_database()
-            token = {"_chocolate_id": len(X) + len(Xpending)}
+            token = token or {}
+            token.update({"_chocolate_id": len(X) + len(Xpending)})
             if len(X) < self.n_bootstrap:
                 out = self.random_state.random_sample((len(list(self.space.names())),))
                 # Signify the first point to others using loss set to None

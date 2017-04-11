@@ -142,6 +142,20 @@ class Base(object):
         self.assertEqual(self.conn.all_complementary(), [])
         self.assertEqual(self.conn.get_space(), None)
 
+    def test_pop_id(self):
+        entry = {"foo": "bar", "bar": "spam", "_loss" : 0.1}
+
+        self.conn.insert_result(entry)
+        results =  self.conn.find_results({})
+        for doc in results:
+            doc = self.conn.pop_id(doc)
+            self.assertEqual(doc, entry)
+
+        self.conn.insert_complementary(entry)
+        comp = self.conn.find_complementary({})
+        comp = self.conn.pop_id(comp)
+        self.assertEqual(comp, entry)
+
 
 class TestSQLite(unittest.TestCase, Base):
     def setUp(self):
