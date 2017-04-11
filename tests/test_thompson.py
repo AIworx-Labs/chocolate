@@ -19,7 +19,7 @@ class TestThompsonSampling(unittest.TestCase):
         self.mock_algo = MagicMock(name="algorithm")
 
         mock_algo_inst = MagicMock(name="algo_instance")
-        mock_algo_inst.next.return_value = {"_chocolate_id": 77}, {'cond_1_b': 8, 'cond_1_a': 5, '_subspace': 0.0}
+        mock_algo_inst._next.return_value = {"_chocolate_id": 77}, {'cond_1_b': 8, 'cond_1_a': 5, '_subspace': 0.0}
 
         self.mock_algo.return_value = mock_algo_inst
 
