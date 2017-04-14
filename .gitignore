@@ -6,7 +6,7 @@
 .hypothesis/
 .vscode/
 cover/
-.converage
+.coverage
 .noseids
 env/
 chocolate.egg-info/
