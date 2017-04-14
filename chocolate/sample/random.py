@@ -59,43 +59,42 @@ class Random(SearchAlgorithm):
             StopIteration: If all dimensions are discrete and all possibilities
                 have been sampled.
         """
-        with self.conn.lock():
-            i = self.conn.count_results()
-            token = token or {}
+        i = self.conn.count_results()
+        token = token or {}
 
-            if self.subspace_grids is not None:
-                # Sample without replacement
-                l = len(self.subspace_grids)
-                if i >= l:
-                    raise StopIteration
-                
-                # Restore state
-                self.random_state.rand(i - self.rndrawn)
-                
-                drawn = [doc["_chocolate_id"] for doc in self.conn.all_results()]
-                
-                choices = sorted(set(range(l)) - set(drawn))
-                sample = self.random_state.choice(choices)
-                self.rndrawn += i - self.rndrawn + 1
-                
-                # Some dbs don't like numpy.int64
-                token.update({"_chocolate_id": int(sample)})
-                out = self.subspace_grids[sample]
+        if self.subspace_grids is not None:
+            # Sample without replacement
+            l = len(self.subspace_grids)
+            if i >= l:
+                raise StopIteration
+            
+            # Restore state
+            self.random_state.rand(i - self.rndrawn)
+            
+            drawn = [doc["_chocolate_id"] for doc in self.conn.all_results()]
+            
+            choices = sorted(set(range(l)) - set(drawn))
+            sample = self.random_state.choice(choices)
+            self.rndrawn += i - self.rndrawn + 1
+            
+            # Some dbs don't like numpy.int64
+            token.update({"_chocolate_id": int(sample)})
+            out = self.subspace_grids[sample]
 
-            else:
-                token.update({"_chocolate_id": i})
+        else:
+            token.update({"_chocolate_id": i})
 
-                # Restore state
-                self.random_state.rand(len(self.space), (i - self.rndrawn))
+            # Restore state
+            self.random_state.rand(len(self.space), (i - self.rndrawn))
 
-                # Sample in [0, 1)^n
-                out = self.random_state.rand(len(self.space))
-                self.rndrawn += i - self.rndrawn + 1
+            # Sample in [0, 1)^n
+            out = self.random_state.rand(len(self.space))
+            self.rndrawn += i - self.rndrawn + 1
 
-            # entry = {k : v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            # entry["_loss"] = None
-            entry.update(token)
-            self.conn.insert_result(entry)
+        # entry = {k : v for k, v in zip(self.space.names(), out)}
+        entry = self.space(out, transform=False)
+        # entry["_loss"] = None
+        entry.update(token)
+        self.conn.insert_result(entry)
 
         return token, self.space(out)

@@ -63,24 +63,23 @@ class QuasiRandom(SearchAlgorithm):
             A tuple containing a unique token and a fully qualified set of
             parameters.
         """
-        with self.conn.lock():
-            i = self.conn.count_results()
-            token = token or {}
-            token.update({"_chocolate_id": i})
+        i = self.conn.count_results()
+        token = token or {}
+        token.update({"_chocolate_id": i})
 
-            # Burn the first i + skip points
-            self.seq.get(self.skip + i - self.rndrawn)
+        # Burn the first i + skip points
+        self.seq.get(self.skip + i - self.rndrawn)
 
-            # Sample in [0, 1)^n
-            out = self.seq.get(1)[0]
-            self.rndrawn += i - self.rndrawn + 1
+        # Sample in [0, 1)^n
+        out = self.seq.get(1)[0]
+        self.rndrawn += i - self.rndrawn + 1
 
-            # Signify next point to others using loss set to None
-            # entry = {k : v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            # entry["_loss"] = None
-            entry.update(token)
-            self.conn.insert_result(entry)
+        # Signify next point to others using loss set to None
+        # entry = {k : v for k, v in zip(self.space.names(), out)}
+        entry = self.space(out, transform=False)
+        # entry["_loss"] = None
+        entry.update(token)
+        self.conn.insert_result(entry)
 
         return token, self.space(out)
 

@@ -79,94 +79,93 @@ class CMAES(SearchAlgorithm):
         """
         self._init()
 
-        with self.conn.lock():
-            # Check what is available in that database
-            results = {r["_chocolate_id"]: r for r in self.conn.all_results()}
-            ancestors, ancestors_ids = self._load_ancestors(results)
-            bootstrap = self._load_bootstrap(results, ancestors_ids)
+        # Check what is available in that database
+        results = {r["_chocolate_id"]: r for r in self.conn.all_results()}
+        ancestors, ancestors_ids = self._load_ancestors(results)
+        bootstrap = self._load_bootstrap(results, ancestors_ids)
 
-            # Rank-mu update on individuals created from another algorithm
-            self._bootstrap(bootstrap)
-            # _bootstrab sets the parent if enough candidates are available (>= 4)
+        # Rank-mu update on individuals created from another algorithm
+        self._bootstrap(bootstrap)
+        # _bootstrab sets the parent if enough candidates are available (>= 4)
 
-            # If the parent is still None and ancestors are available
-            # set the parent to the first evaluated candidate if any
-            if self.parent is None and len(ancestors) > 0:
-                self.parent = next((a for a in ancestors if a["loss"] is not None), None)
+        # If the parent is still None and ancestors are available
+        # set the parent to the first evaluated candidate if any
+        if self.parent is None and len(ancestors) > 0:
+            self.parent = next((a for a in ancestors if a["loss"] is not None), None)
 
-            # Generate the next point
-            token = token or {}
-            token.update({"_chocolate_id": self.conn.count_results()})
+        # Generate the next point
+        token = token or {}
+        token.update({"_chocolate_id": self.conn.count_results()})
 
-            # If the parent is still None, no information available
-            if self.parent is None:
-                # out = numpy.ones(self.dim) / 2.0
-                out = self.random_state.rand(self.dim)
+        # If the parent is still None, no information available
+        if self.parent is None:
+            # out = numpy.ones(self.dim) / 2.0
+            out = self.random_state.rand(self.dim)
 
-                # Signify the first point to others using loss set to None
-                # Transform to dict with parameter names
-                # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-                entry = self.space(out, transform=False)
-                # entry["_loss"] = None
-                entry.update(token)
-                self.conn.insert_result(entry)
+            # Signify the first point to others using loss set to None
+            # Transform to dict with parameter names
+            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
+            entry = self.space(out, transform=False)
+            # entry["_loss"] = None
+            entry.update(token)
+            self.conn.insert_result(entry)
+
+            # Add the step to the complementary table
+            # Transform to dict with parameter names
+            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
+            entry = self.space(out, transform=False)
+            entry.update(_ancestor_id=-1, _invalid=0, _search_algo="cmaes", **token)
+            self.conn.insert_complementary(entry)
+
+            # return the true parameter set
+            return token, self.space(out)
+
+        else:
+            # Simulate the CMA-ES update for each ancestor.
+            for key, group in groupby(ancestors[1:], key=itemgetter("ancestor_id")):
+                # If the loss for this entry is not yet availabe, don't include it
+                group = list(group)
+                self.lambda_ = len(group)
+                self._configure()  # Adjust constants that depends on lambda
+                self._update_internals(group)
+
+            invalid = 1
+            while invalid > 0:
+                # Generate a single candidate at a time
+                self.lambda_ = 1
+                self._configure()
+
+                # The ancestor id is the last candidate that participated in the
+                # covariance matrix update
+                ancestor_id = next(
+                    (a["chocolate_id"] for a in reversed(bootstrap + ancestors) if a["loss"] is not None or a[
+                        "invalid"] > 0),
+                    None)
+                assert ancestor_id is not None, "Invalid ancestor id"
+
+                out, y = self._generate()
+
+                # Encode constraint violation
+                invalid = sum(2 ** (2 * i) for i, xi in enumerate(out) if xi < 0)
+                invalid += sum(2 ** (2 * i + 1) for i, xi in enumerate(out) if xi >= 1)
 
                 # Add the step to the complementary table
                 # Transform to dict with parameter names
-                # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-                entry = self.space(out, transform=False)
-                entry.update(_ancestor_id=-1, _invalid=0, _search_algo="cmaes", **token)
+                # entry = {str(k): v for k, v in zip(self.space.names(), y)}
+                entry = self.space(y, transform=False)
+                entry.update(_ancestor_id=ancestor_id, _invalid=invalid, _search_algo="cmaes", **token)
                 self.conn.insert_complementary(entry)
 
-                # return the true parameter set
-                return token, self.space(out)
+            # Signify next point to others using loss set to None
+            # Transform to dict with parameter names
+            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
+            entry = self.space(out, transform=False)
+            # entry["_loss"] = None
+            entry.update(token)
+            self.conn.insert_result(entry)
 
-            else:
-                # Simulate the CMA-ES update for each ancestor.
-                for key, group in groupby(ancestors[1:], key=itemgetter("ancestor_id")):
-                    # If the loss for this entry is not yet availabe, don't include it
-                    group = list(group)
-                    self.lambda_ = len(group)
-                    self._configure()  # Adjust constants that depends on lambda
-                    self._update_internals(group)
-
-                invalid = 1
-                while invalid > 0:
-                    # Generate a single candidate at a time
-                    self.lambda_ = 1
-                    self._configure()
-
-                    # The ancestor id is the last candidate that participated in the
-                    # covariance matrix update
-                    ancestor_id = next(
-                        (a["chocolate_id"] for a in reversed(bootstrap + ancestors) if a["loss"] is not None or a[
-                            "invalid"] > 0),
-                        None)
-                    assert ancestor_id is not None, "Invalid ancestor id"
-
-                    out, y = self._generate()
-
-                    # Encode constraint violation
-                    invalid = sum(2 ** (2 * i) for i, xi in enumerate(out) if xi < 0)
-                    invalid += sum(2 ** (2 * i + 1) for i, xi in enumerate(out) if xi >= 1)
-
-                    # Add the step to the complementary table
-                    # Transform to dict with parameter names
-                    # entry = {str(k): v for k, v in zip(self.space.names(), y)}
-                    entry = self.space(y, transform=False)
-                    entry.update(_ancestor_id=ancestor_id, _invalid=invalid, _search_algo="cmaes", **token)
-                    self.conn.insert_complementary(entry)
-
-                # Signify next point to others using loss set to None
-                # Transform to dict with parameter names
-                # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-                entry = self.space(out, transform=False)
-                # entry["_loss"] = None
-                entry.update(token)
-                self.conn.insert_result(entry)
-
-                # return the true parameter set
-                return token, self.space(out)
+            # return the true parameter set
+            return token, self.space(out)
 
     def _init(self):
         self.parent = None

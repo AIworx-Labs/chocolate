@@ -1,6 +1,5 @@
-from collections import Mapping, Sequence, defaultdict
+from collections import Mapping
 
-import numpy
 import pandas
 
 from .space import Space 
@@ -62,7 +61,6 @@ class Connection(object):
 
         all_results = []
         for r in results:
-            #result_as_dict = {k: r[k] for k in s.names()}
             result = s([r[k] for k in s.names()])
             if "_loss" in r:
                 result['loss'] = r['_loss']
@@ -75,81 +73,6 @@ class Connection(object):
         df.index = df.id
         df.drop("id", inplace=True, axis=1)
         return df
-
-
-class RepeatCrossValidation(object):
-    def __init__(self, repetitions, reduce=numpy.mean, rep_col="_repetition_id"):
-        self.repetitions = repetitions
-        self.reduce = reduce
-        self.rep_col = rep_col
-        self.space = None
-
-    def _wrap_connection(self, connection):
-        self.conn = connection
-        self.orig_all_results = connection.all_results
-        connection.all_results = self.all_results
-
-        connection.count_results = self.count_results
-
-    def all_results(self):
-        results = self.orig_all_results()
-        reduced_results = list()
-        for result_group in self.group_repetitions(results):
-            losses = [r["_loss"] for r in result_group if r["_loss"] is not None]
-            if len(losses) > 0:
-                result = result_group[0]
-                result["_loss"] = self.reduce(losses)
-                reduced_results.append(result)
-            else:
-                reduced_results.append(result_group[0])
-
-        return reduced_results
-
-    def count_results(self):
-        return len(self.all_results())
-
-    def next(self):
-        """Has to be called inside a lock
-        
-        Returns:
-
-        """
-        if self.repetitions > 1:
-            if self.space is None:
-                self.space = self.conn.get_space()
-
-            results = self.orig_all_results()
-            names = set(self.space.names())
-            names.add("_loss")
-            for result_group in self.group_repetitions(results):
-                if len(result_group) < self.repetitions:
-                    vec = [result_group[0][k] if k in result_group[0] else None for k in self.space.names()]
-                    token = {k: result_group[0][k] for k in result_group[0].keys() if k not in names}
-                    token.update({self.rep_col: len(result_group)})
-                    entry = result_group[0].copy()
-                    # Ensure we don't have a duplicated id in the database
-                    entry = self.conn.pop_id(entry)
-                    token = self.conn.pop_id(token)
-                    entry.update(token)
-                    self.conn.insert_result(entry)
-                    return token, self.space(vec)
-
-            return {self.rep_col: 0}, None
-
-        return None, None
-
-    def group_repetitions(self, results):
-        grouped = defaultdict(list)
-        names = set(self.space.names())
-        names.add("_loss")
-        names.add(self.rep_col)
-
-        for row in results:
-            row = self.conn.pop_id(row)
-            id_ = tuple((k, row[k]) for k in sorted(row.keys()) if k not in names)
-            grouped[id_].append(row)
-
-        return grouped.values()
 
 
 class SearchAlgorithm(object):
@@ -187,7 +110,7 @@ class SearchAlgorithm(object):
         self.crossvalidation = crossvalidation
         if self.crossvalidation is not None:
             self.crossvalidation = crossvalidation
-            self.crossvalidation._wrap_connection(connection)
+            self.crossvalidation.wrap_connection(connection)
 
     def update(self, token, values):
         """Update the loss of the parameters associated with *token*.
@@ -198,34 +121,11 @@ class SearchAlgorithm(object):
             values: The loss of the current parameter set.
 
         """
-        # Check and standardize values type
-        if isinstance(values, Sequence):
-            raise NotImplementedError("Cross-validation is not yet supported in DB")
-
-        if isinstance(values, Sequence) and not isinstance(values[0], Mapping):
-            raise NotImplementedError("Cross-validation is not yet supported in DB")
-            values = [{"_loss" : v, "split_" : i} for i, v in enumerate(values)]
-        elif not isinstance(values, Mapping):
-            values = [{"_loss" : values}]
-        elif isinstance(values, Mapping):
-            values = [values]
+        if not isinstance(values, Mapping):
+            values = {"_loss": values}
 
         with self.conn.lock():
-            if len(values) > 1:
-                raise NotImplementedError("Cross-validation is not yet supported in DB")
-                orig = self.conn.find_results(token)[0]
-                orig = {k: orig[k] for k in self.space.column_names()}
-
-            result = list()
-            self.conn.update_result(token, values[0])
-            for v in values[1:]:
-                document = orig.copy()
-                document.update(v)
-                document.update(token)
-                r = self.conn.insert_result(document)
-                result.append(r)
-            
-        return result
+            self.conn.update_result(token, values)
 
     def next(self):
         """Retrieve the next point to evaluate based on available data in the
@@ -234,12 +134,16 @@ class SearchAlgorithm(object):
         Returns:
             A tuple containing a unique token and a fully qualified parameter set.
         """
-        if self.crossvalidation is not None:
-            reps_token, params = self.crossvalidation.next()
-            if reps_token is not None and params is not None:
-                return reps_token, params
-            elif reps_token is not None and params is None:
-                token, params = self._next(reps_token)
-                return token, params
+        with self.conn.lock():
+            if self.crossvalidation is not None:
+                reps_token, params = self.crossvalidation.next()
+                if reps_token is not None and params is not None:
+                    return reps_token, params
+                elif reps_token is not None and params is None:
+                    token, params = self._next(reps_token)
+                    return token, params
 
-        return self._next()
+            return self._next()
+
+    def _next(self, token=None):
+        raise NotImplementedError

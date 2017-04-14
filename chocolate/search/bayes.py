@@ -47,28 +47,27 @@ class Bayes(SearchAlgorithm):
         self.random_state = numpy.random.RandomState()
 
     def _next(self, token=None):
-        with self.conn.lock():
-            X, Xpending, y = self._load_database()
-            token = token or {}
-            token.update({"_chocolate_id": len(X) + len(Xpending)})
-            if len(X) < self.n_bootstrap:
-                out = self.random_state.random_sample((len(list(self.space.names())),))
-                # Signify the first point to others using loss set to None
-                # Transform to dict with parameter names
-                # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-                entry = self.space(out, transform=False)
-                entry.update(token)
-                self.conn.insert_result(entry)
-                return token, self.space(out)
-
-            gp, y = self._fit_gp(X, Xpending, y)
-            out = self._acquisition(gp, y)
+        X, Xpending, y = self._load_database()
+        token = token or {}
+        token.update({"_chocolate_id": len(X) + len(Xpending)})
+        if len(X) < self.n_bootstrap:
+            out = self.random_state.random_sample((len(list(self.space.names())),))
+            # Signify the first point to others using loss set to None
+            # Transform to dict with parameter names
             # entry = {str(k): v for k, v in zip(self.space.names(), out)}
             entry = self.space(out, transform=False)
             entry.update(token)
             self.conn.insert_result(entry)
-
             return token, self.space(out)
+
+        gp, y = self._fit_gp(X, Xpending, y)
+        out = self._acquisition(gp, y)
+        # entry = {str(k): v for k, v in zip(self.space.names(), out)}
+        entry = self.space(out, transform=False)
+        entry.update(token)
+        self.conn.insert_result(entry)
+
+        return token, self.space(out)
 
     def _fit_gp(self, X, Xpending, y):
         gp = gaussian_process.GaussianProcessRegressor(kernel=self.k)

@@ -75,24 +75,23 @@ class Grid(SearchAlgorithm):
         Raises:
             StopIteration: When the grid is exhausted.
         """
-        with self.conn.lock():
-            i = self.conn.count_results()
-            if i < len(self.grid):
-                token = token or {}
-                token.update({"_chocolate_id": i})
-                # Sample next point in [0, 1)^n
-                out = self.grid[i]
-                
-                # Signify next point to others using loss set to None
-                # Transform to dict with parameter name
-                # entry = {k : v for k, v in zip(self.space.names(), out)}
-                entry = self.space(out, transform=False)
-                # entry = out.copy()
-                # entry["_loss"] = None
-                entry.update(token)
-                self.conn.insert_result(entry)
-                
-                # return the true parameter set
-                return token, self.space(out)
+        i = self.conn.count_results()
+        if i < len(self.grid):
+            token = token or {}
+            token.update({"_chocolate_id": i})
+            # Sample next point in [0, 1)^n
+            out = self.grid[i]
+            
+            # Signify next point to others using loss set to None
+            # Transform to dict with parameter name
+            # entry = {k : v for k, v in zip(self.space.names(), out)}
+            entry = self.space(out, transform=False)
+            # entry = out.copy()
+            # entry["_loss"] = None
+            entry.update(token)
+            self.conn.insert_result(entry)
+            
+            # return the true parameter set
+            return token, self.space(out)
         
         raise StopIteration()

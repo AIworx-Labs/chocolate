@@ -96,28 +96,28 @@ class ThompsonSampling(SearchAlgorithm):
             A tuple containing a unique token and a fully qualified parameter set.
         """
         self._init()
-        with self.conn.lock():
-            losses = list()
-            for entry in self.conn.all_results():
-                arm_id = entry.get("_arm_id", None)
-                loss = entry.get("_loss", None)
-                if arm_id and loss:
-                    idx = self.arm_idx.index(arm_id)
-                    success = 1
-                    if losses:
-                        success = loss < numpy.median(losses)
-                    self._update_arms(idx, success)
-                    losses.append(loss)
 
-            # Remove inactive arms (those that exhausted all parameter possibilities)
-            while True:
-                idx = self.arm_idx[self._select_arm()]
-                try:
-                    token, params = self.arms[idx]._next(token)
-                except StopIteration:
-                    self._remove_arm(idx)
-                    if len(self._active_arms) == 0:
-                        raise
-                else:
-                    token.update({"_arm_id": idx})
-                    return token, transform_suboutput(params, self.space)
+        losses = list()
+        for entry in self.conn.all_results():
+            arm_id = entry.get("_arm_id", None)
+            loss = entry.get("_loss", None)
+            if arm_id and loss:
+                idx = self.arm_idx.index(arm_id)
+                success = 1
+                if losses:
+                    success = loss < numpy.median(losses)
+                self._update_arms(idx, success)
+                losses.append(loss)
+
+        # Remove inactive arms (those that exhausted all parameter possibilities)
+        while True:
+            idx = self.arm_idx[self._select_arm()]
+            try:
+                token, params = self.arms[idx]._next(token)
+            except StopIteration:
+                self._remove_arm(idx)
+                if len(self._active_arms) == 0:
+                    raise
+            else:
+                token.update({"_arm_id": idx})
+                return token, transform_suboutput(params, self.space)
