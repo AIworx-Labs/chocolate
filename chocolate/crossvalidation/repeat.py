@@ -3,6 +3,26 @@ from collections import defaultdict
 import numpy
 
 class Repeat(object):
+    """Repeats each experiment a given number of times and reduces the losses for
+    the algorithms.
+
+    The repetition cross-validation wraps the connection to handle repetition of
+    experiments in the database. It is transparent to algorithms as it reduces
+    the loss of repeated parameters and returns a list of results containing a single
+    instance of each parameter set when :meth:`all_results` is called. If not all
+    repetitions values are entered in the database before the next point is generated
+    by the algorithm, the algorithm will see the reduced loss of the parameters
+    that are completely evaluated only. Alternatively, if no repetition has finished
+    its evaluation, the algorithm will see a :data:`None` as loss. :class:`Repeat` also
+    handles assigning a repetition number to the tokens since the ``_chocolate_id`` will be
+    repeated. Other token values, such as :class:`~chocolate.ThompsonSampling`'s
+    ``_arm_id``, are also preserved.
+
+    Args:
+        repetitions: The number of repetitions to do for each experiment.
+        reduce: The function to use to reduce the valid losses, usually average or median.
+        rep_col: The database column name to use as repetition number.
+    """
     def __init__(self, repetitions, reduce=numpy.mean, rep_col="_repetition_id"):
         self.repetitions = repetitions
         self.reduce = reduce
@@ -10,6 +30,8 @@ class Repeat(object):
         self.space = None
 
     def wrap_connection(self, connection):
+        """
+        """
         self.conn = connection
         self.orig_all_results = connection.all_results
         connection.all_results = self.all_results
@@ -17,10 +39,8 @@ class Repeat(object):
 
     def all_results(self):
         results = self.orig_all_results()
-        print(results)
         reduced_results = list()
         for result_group in self.group_repetitions(results):
-            print(result_group)
             losses = [r["_loss"] for r in result_group if r["_loss"] is not None]
             if len(losses) > 0:
                 result = result_group[0].copy()

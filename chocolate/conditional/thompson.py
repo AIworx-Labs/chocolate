@@ -8,7 +8,9 @@ from ..connection.splitter import ConnectionSplitter, split_space, transform_sub
 
 
 class ThompsonSampling(SearchAlgorithm):
-    """Thompson sampling wrapper to sample subspaces proportionally to their
+    """Conditional subspaces exploration strategy. 
+    
+    Thompson sampling wrapper to sample subspaces proportionally to their
     estimated quality. Each subspace of a conditional search space will be treated
     independently. This version uses an estimated moving average for the reward and
     forgets the reward of unselected subspaces allowing to model the dynamics
@@ -19,6 +21,8 @@ class ThompsonSampling(SearchAlgorithm):
         algo: An algorithm to sample/search each subspace.
         connection: A database connection object.
         space: The conditional search space to explore.
+        crossvalidation: A cross-validation object that handles experiment
+            repetition.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
             database and insert set the space to the provided one.

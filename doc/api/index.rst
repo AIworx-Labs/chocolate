@@ -3,13 +3,14 @@ Library Reference
 
 .. toctree::
    :hidden:
-   :maxdepth: 4
+   :maxdepth: 2
 
    space
    connection
    sample
    search
    conditional
+   crossvalidation
 
 .. currentmodule:: chocolate
 
@@ -57,3 +58,10 @@ Library Reference
    :nosignatures:
 
    ThompsonSampling
+
+.. rubric:: :doc:`crossvalidation`
+
+.. autosummary::
+   :nosignatures:
+
+   Repeat

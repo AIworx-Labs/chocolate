@@ -21,6 +21,8 @@ class Random(SearchAlgorithm):
         space: The search space to explore with only discrete dimensions. The
             search space can be either a dictionary or a
             :class:`chocolate.Space` instance.
+        crossvalidation: A cross-validation object that handles experiment
+            repetition.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
             database and set the space to the provided one.

@@ -18,6 +18,8 @@ class Bayes(SearchAlgorithm):
     Args:
         connection: A database connection object.
         space: the search space to explore with only discrete dimensions.
+        crossvalidation: A cross-validation object that handles experiment
+            repetition.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
             database and set set the space to the provided one.
