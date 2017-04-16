@@ -16,6 +16,10 @@ class DataFrameConnection(Connection):
     connection in different processes will result in two independent searches
     **not** sharing any information.
 
+    Args:
+        from_file: The name of a file containing a pickled data frame
+        connection.
+
     Using this connection requires small adjustments to the proposed main
     script. When the main process finishes, all data will vanish if not
     explicitly writen to disk. Thus, instead of doing a single evaluation,
