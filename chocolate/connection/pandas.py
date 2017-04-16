@@ -18,7 +18,7 @@ class DataFrameConnection(Connection):
 
     Args:
         from_file: The name of a file containing a pickled data frame
-        connection.
+            connection.
 
     Using this connection requires small adjustments to the proposed main
     script. When the main process finishes, all data will vanish if not
