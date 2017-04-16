@@ -20,8 +20,8 @@ class Repeat(object):
 
     Args:
         repetitions: The number of repetitions to do for each experiment.
-        reduce: The function to use to reduce the valid losses, usually average or median.
-        rep_col: The database column name to use as repetition number.
+        reduce: The function to reduce the valid losses, usually average or median.
+        rep_col: The database column name for the repetition number, it has to be unique.
     """
     def __init__(self, repetitions, reduce=numpy.mean, rep_col="_repetition_id"):
         self.repetitions = repetitions
@@ -94,5 +94,4 @@ class Repeat(object):
             id_ = tuple((k, row[k]) for k in sorted(row.keys()) if k not in names)
             grouped[id_].append(row)
 
-        print(grouped)
         return grouped.values()
