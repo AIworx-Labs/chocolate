@@ -22,6 +22,7 @@ Chocolat is licensed under the `3-Clause BSD License
   * :doc:`Let's go to Tensor Flow <tutorials/tf>`
   * :doc:`tutorials/results`
   * :doc:`How to choose your algorithm <tutorials/algo>`
+  * :doc:`Cross-validating the results <tutorials/crossvalidation>`
   * :doc:`For developpers <tutorials/dev>`
 
 
@@ -39,6 +40,7 @@ Chocolat is licensed under the `3-Clause BSD License
   tutorials/tf
   tutorials/results
   tutorials/algo
+  tutorials/crossvalidation
   tutorials/dev
   installation
   api/index

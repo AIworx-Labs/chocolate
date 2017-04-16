@@ -3,6 +3,12 @@
 *.db
 *.lock
 .idea/
+.hypothesis/
+.vscode/
+cover/
+.coverage
+.noseids
+env/
 chocolate.egg-info/
 __pycache__/
 doc/_build

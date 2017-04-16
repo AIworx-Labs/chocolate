@@ -25,6 +25,8 @@ class QuasiRandom(SearchAlgorithm):
         space: The search space to explore with only discrete dimensions. The
             search space can be either a dictionary or a
             :class:`chocolate.Space` instance.
+        crossvalidation: A cross-validation object that handles experiment
+            repetition.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
             database and set the space to the provided one.
@@ -38,8 +40,8 @@ class QuasiRandom(SearchAlgorithm):
             point is sampled.
 
     """
-    def __init__(self, connection, space, clear_db=False, seed=None, permutations=None, skip=0):
-        super(QuasiRandom, self).__init__(connection, space, clear_db)
+    def __init__(self, connection, space, crossvalidation=None, clear_db=False, seed=None, permutations=None, skip=0):
+        super(QuasiRandom, self).__init__(connection, space, crossvalidation, clear_db)
         self.skip = skip
         if permutations == "ea":
             self.seq = ghalton.GeneralizedHalton(ghalton.EA_PERMS[:len(self.space)])
@@ -52,7 +54,7 @@ class QuasiRandom(SearchAlgorithm):
 
         self.rndrawn = 0
 
-    def next(self):
+    def _next(self, token=None):
         """Retrieve the next quasi-random point to test and add it to the
         database with loss set to :data:`None`. On each call random points are
         burnt so that two random samplings running concurrently with the same
@@ -63,23 +65,23 @@ class QuasiRandom(SearchAlgorithm):
             A tuple containing a unique token and a fully qualified set of
             parameters.
         """
-        with self.conn.lock():
-            i = self.conn.count_results()
-            token = {"_chocolate_id": i}
+        i = self.conn.count_results()
+        token = token or {}
+        token.update({"_chocolate_id": i})
 
-            # Burn the first i + skip points
-            self.seq.get(self.skip + i - self.rndrawn)
+        # Burn the first i + skip points
+        self.seq.get(self.skip + i - self.rndrawn)
 
-            # Sample in [0, 1)^n
-            out = self.seq.get(1)[0]
-            self.rndrawn += i - self.rndrawn + 1
+        # Sample in [0, 1)^n
+        out = self.seq.get(1)[0]
+        self.rndrawn += i - self.rndrawn + 1
 
-            # Signify next point to others using loss set to None
-            # entry = {k : v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            # entry["_loss"] = None
-            entry.update(token)
-            self.conn.insert_result(entry)
+        # Signify next point to others using loss set to None
+        # entry = {k : v for k, v in zip(self.space.names(), out)}
+        entry = self.space(out, transform=False)
+        # entry["_loss"] = None
+        entry.update(token)
+        self.conn.insert_result(entry)
 
         return token, self.space(out)
 

@@ -1,6 +1,5 @@
-from collections import Mapping, Sequence
+from collections import Mapping
 
-import numpy
 import pandas
 
 from .space import Space 
@@ -45,6 +44,9 @@ class Connection(object):
     def clear(self):
         raise NotImplementedError
 
+    def pop_id(self, document):
+        raise NotImplementedError
+
     def results_as_dataframe(self):
         """Compile all the results and transform them using the space specified in the database. It is safe to
         use this method while other experiments are still writing to the database.
@@ -59,7 +61,6 @@ class Connection(object):
 
         all_results = []
         for r in results:
-            #result_as_dict = {k: r[k] for k in s.names()}
             result = s([r[k] for k in s.names()])
             if "_loss" in r:
                 result['loss'] = r['_loss']
@@ -73,11 +74,12 @@ class Connection(object):
         df.drop("id", inplace=True, axis=1)
         return df
 
+
 class SearchAlgorithm(object):
     """Base class for search algorithms. Other than providing the :meth:`update` method
     it ensures the provided space fits with the one int the database.
     """
-    def __init__(self, connection, space=None, clear_db=False):
+    def __init__(self, connection, space=None, crossvalidation=None, clear_db=False):
         if space is not None and not isinstance(space, Space):
             space = Space(space)
 
@@ -105,8 +107,10 @@ class SearchAlgorithm(object):
 
         self.space = space
 
-    def _ffw_random_state(self, *n):
-        self.random_state.rand(*n)
+        self.crossvalidation = crossvalidation
+        if self.crossvalidation is not None:
+            self.crossvalidation = crossvalidation
+            self.crossvalidation.wrap_connection(connection)
 
     def update(self, token, values):
         """Update the loss of the parameters associated with *token*.
@@ -117,31 +121,29 @@ class SearchAlgorithm(object):
             values: The loss of the current parameter set.
 
         """
-        # Check and standardize values type
-        if isinstance(values, Sequence):
-            raise NotImplementedError("Cross-validation is not yet supported in DB")
-
-        if isinstance(values, Sequence) and not isinstance(values[0], Mapping):
-            raise NotImplementedError("Cross-validation is not yet supported in DB")
-            values = [{"_loss" : v, "split_" : i} for i, v in enumerate(values)]
-        elif not isinstance(values, Mapping):
-            values = [{"_loss" : values}]
-        elif isinstance(values, Mapping):
-            values = [values]
+        if not isinstance(values, Mapping):
+            values = {"_loss": values}
 
         with self.conn.lock():
-            if len(values) > 1:
-                raise NotImplementedError("Cross-validation is not yet supported in DB")
-                orig = self.conn.find_results(token)[0]
-                orig = {k: orig[k] for k in self.space.column_names()}
+            self.conn.update_result(token, values)
 
-            result = list()
-            self.conn.update_result(token, values[0])
-            for v in values[1:]:
-                document = orig.copy()
-                document.update(v)
-                document.update(token)
-                r = self.conn.insert_result(document)
-                result.append(r)
-            
-        return result
+    def next(self):
+        """Retrieve the next point to evaluate based on available data in the
+        database.
+        
+        Returns:
+            A tuple containing a unique token and a fully qualified parameter set.
+        """
+        with self.conn.lock():
+            if self.crossvalidation is not None:
+                reps_token, params = self.crossvalidation.next()
+                if reps_token is not None and params is not None:
+                    return reps_token, params
+                elif reps_token is not None and params is None:
+                    token, params = self._next(reps_token)
+                    return token, params
+
+            return self._next()
+
+    def _next(self, token=None):
+        raise NotImplementedError

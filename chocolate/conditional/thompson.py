@@ -8,7 +8,9 @@ from ..connection.splitter import ConnectionSplitter, split_space, transform_sub
 
 
 class ThompsonSampling(SearchAlgorithm):
-    """Thompson sampling wrapper to sample subspaces proportionally to their
+    """Conditional subspaces exploration strategy. 
+    
+    Thompson sampling wrapper to sample subspaces proportionally to their
     estimated quality. Each subspace of a conditional search space will be treated
     independently. This version uses an estimated moving average for the reward and
     forgets the reward of unselected subspaces allowing to model the dynamics
@@ -19,6 +21,8 @@ class ThompsonSampling(SearchAlgorithm):
         algo: An algorithm to sample/search each subspace.
         connection: A database connection object.
         space: The conditional search space to explore.
+        crossvalidation: A cross-validation object that handles experiment
+            repetition.
         clear_db: If set to :data:`True` and a conflict arise between the
             provided space and the space in the database, completely clear the
             database and insert set the space to the provided one.
@@ -36,9 +40,9 @@ class ThompsonSampling(SearchAlgorithm):
        Thompson sampling", in Advances in Neural Information Processing
        Systems 24 (NIPS), 2011.
     """
-    def __init__(self, algo, connection, space, clear_db=False, random_state=None,
+    def __init__(self, algo, connection, space, crossvalidation=None, clear_db=False, random_state=None,
                  gamma=0.9, epsilon=0.05, algo_params=None):
-        super(ThompsonSampling, self).__init__(connection, space, clear_db)
+        super(ThompsonSampling, self).__init__(connection, space, crossvalidation, clear_db)
         self.arms = list()
         for i, cond_space in enumerate(split_space(self.space)):
             connection = ConnectionSplitter(self.conn, i, "_arm_id")
@@ -87,7 +91,7 @@ class ThompsonSampling(SearchAlgorithm):
         """Returns a list of active arms"""
         return [self.arms[idx] for idx in self.arm_idx]
 
-    def next(self):
+    def _next(self, token=None):
         """Retrieve the next point to evaluate based on available data in the
         database. Each time :meth:`next` is called, the algorithm will reinitialize
         it-self based on the data in the database.
@@ -96,28 +100,28 @@ class ThompsonSampling(SearchAlgorithm):
             A tuple containing a unique token and a fully qualified parameter set.
         """
         self._init()
-        with self.conn.lock():
-            losses = list()
-            for entry in self.conn.all_results():
-                arm_id = entry.get("_arm_id", None)
-                loss = entry.get("_loss", None)
-                if arm_id and loss:
-                    idx = self.arm_idx.index(arm_id)
-                    success = 1
-                    if losses:
-                        success = loss < numpy.median(losses)
-                    self._update_arms(idx, success)
-                    losses.append(loss)
 
-            # Remove inactive arms (those that exhausted all parameter possibilities)
-            while True:
-                idx = self.arm_idx[self._select_arm()]
-                try:
-                    token, params = self.arms[idx].next()
-                except StopIteration:
-                    self._remove_arm(idx)
-                    if len(self._active_arms) == 0:
-                        raise
-                else:
-                    token.update({"_arm_id": idx})
-                    return token, transform_suboutput(params, self.space)
+        losses = list()
+        for entry in self.conn.all_results():
+            arm_id = entry.get("_arm_id", None)
+            loss = entry.get("_loss", None)
+            if arm_id and loss:
+                idx = self.arm_idx.index(arm_id)
+                success = 1
+                if losses:
+                    success = loss < numpy.median(losses)
+                self._update_arms(idx, success)
+                losses.append(loss)
+
+        # Remove inactive arms (those that exhausted all parameter possibilities)
+        while True:
+            idx = self.arm_idx[self._select_arm()]
+            try:
+                token, params = self.arms[idx]._next(token)
+            except StopIteration:
+                self._remove_arm(idx)
+                if len(self._active_arms) == 0:
+                    raise
+            else:
+                token.update({"_arm_id": idx})
+                return token, transform_suboutput(params, self.space)
