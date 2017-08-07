@@ -367,11 +367,11 @@ class CMAES(SearchAlgorithm):
         R_int = numpy.zeros(self.dim)
 
         # Mixed integer CMA-ES is developped for (mu/mu , lambda)
-        # We have a (1 + 1) setting, the integer will be probabilistic.
+        # We have a (1 + 1) setting, thus we make the integer mutation probabilistic.
         # The integer mutation is lambda / 2 if all dimensions are integers or
-        # min(lambda / 2 - 1, lambda / 10 + n_I_R + 1), minus 1 accounts for 
+        # min(lambda / 2 - 1, lambda / 10 + n_I_R + 1), minus 1 accounts for
         # the last new candidate getting its integer mutation from the last best
-        # solution. 
+        # solution.
         if n_I_R == self.dim:
             p = 0.5
         else:
@@ -395,3 +395,302 @@ class CMAES(SearchAlgorithm):
         arz = self.parent["X"] + self.sigma * y + self.S_int * R_int
 
         return arz, y
+
+
+class MOCMAES(SearchAlgorithm):
+    """Multi-Objective Covariance Matrix Adaptation Evolution Strategy.
+
+    """
+    def __init__(self, connection, space, crossvalidation=None, clear_db=False, **params):
+        super(MOCMAES, self).__init__(connection, space, crossvalidation, clear_db)
+        self.random_state = numpy.random.RandomState()
+        self.params = params
+
+    def _next(self, token=None):
+        pass
+
+    def _generate(self):
+        n_I_R = self.i_I_R.shape[0]
+        R_int = numpy.zeros(self.dim)
+
+        # Mixed integer CMA-ES is developped for (mu/mu , lambda)
+        # We have a (1 + 1) setting, thus we make the integer mutation probabilistic.
+        # The integer mutation is lambda / 2 if all dimensions are integers or
+        # min(lambda / 2 - 1, lambda / 10 + n_I_R + 1), minus 1 accounts for
+        # the last new candidate getting its integer mutation from the last best
+        # solution.
+        if n_I_R == self.dim:
+            p = 0.5
+        else:
+            p = min(0.5, 0.1 + n_I_R / self.dim)
+
+        if n_I_R > 0 and self.random_state.rand() < p:
+            Rp = numpy.zeros(self.dim)
+            Rpp = numpy.zeros(self.dim)
+
+            # Ri' has exactly one of its components set to one.
+            # The Ri' are dependent in that the number of mutations for each coordinate
+            # differs at most by one.
+            j = self.random_state.choice(self.i_I_R)
+            Rp[j] = 1
+            Rpp[j] = self.random_state.geometric(p=0.7 ** (1.0 / n_I_R)) - 1
+
+            I_pm1 = (-1) ** self.random_state.randint(0, 2, self.dim)
+            R_int = I_pm1 * (Rp + Rpp)
+
+        y = numpy.dot(self.random_state.standard_normal(self.dim), self.A.T)
+
+        # Select the parent at random from the non dominated set of parents
+        ndom = sortLogNondominated(self.parents, len(self.parents), first_front_only=True)
+        pi = numpy.random.randint(0, len(ndom))
+
+        arz = self.parents[pi]["X"] + self.sigma[pi] * y + self.S_int * R_int
+
+        return arz, y
+
+
+####################
+# Helper functions #
+####################
+
+def identity(obj):
+    """Returns directly the argument *obj*.
+    """
+    return obj
+
+def isDominated(wvalues1, wvalues2):
+    """Returns whether or not *wvalues1* dominates *wvalues2*.
+
+    :param wvalues1: The weighted fitness values that would be dominated.
+    :param wvalues2: The weighted fitness values of the dominant.
+    :returns: :obj:`True` if wvalues2 dominates wvalues1, :obj:`False`
+              otherwise.
+    """
+    not_equal = False
+    for self_wvalue, other_wvalue in zip(wvalues1, wvalues2):
+        if self_wvalue > other_wvalue:
+            return False
+        elif self_wvalue < other_wvalue:
+            not_equal = True
+    return not_equal
+
+def median(seq, key=identity):
+    """Returns the median of *seq* - the numeric value separating the higher
+    half of a sample from the lower half. If there is an even number of
+    elements in *seq*, it returns the mean of the two middle values.
+    """
+    sseq = sorted(seq, key=key)
+    length = len(seq)
+    if length % 2 == 1:
+        return key(sseq[(length - 1) // 2])
+    else:
+        return (key(sseq[(length - 1) // 2]) + key(sseq[length // 2])) / 2.0
+
+def sortLogNondominated(individuals, k, first_front_only=False):
+    """Sort *individuals* in pareto non-dominated fronts using the Generalized
+    Reduced Run-Time Complexity Non-Dominated Sorting Algorithm presented by
+    Fortin et al. (2013).
+
+    :param individuals: A list of individuals to select from.
+    :returns: A list of Pareto fronts (lists), with the first list being the
+              true Pareto front.
+    """
+    if k == 0:
+        return []
+
+    #Separate individuals according to unique fitnesses
+    unique_fits = defaultdict(list)
+    for i, ind in enumerate(individuals):
+        unique_fits[ind.fitness.wvalues].append(ind)
+
+    #Launch the sorting algorithm
+    obj = len(individuals[0].fitness.wvalues)-1
+    fitnesses = unique_fits.keys()
+    front = dict.fromkeys(fitnesses, 0)
+
+    # Sort the fitnesses lexicographically.
+    fitnesses.sort(reverse=True)
+    sortNDHelperA(fitnesses, obj, front)
+
+    #Extract individuals from front list here
+    nbfronts = max(front.values())+1
+    pareto_fronts = [[] for i in range(nbfronts)]
+    for fit in fitnesses:
+        index = front[fit]
+        pareto_fronts[index].extend(unique_fits[fit])
+
+    # Keep only the fronts required to have k individuals.
+    if not first_front_only:
+        count = 0
+        for i, front in enumerate(pareto_fronts):
+            count += len(front)
+            if count >= k:
+                return pareto_fronts[:i+1]
+        return pareto_fronts
+    else:
+        return pareto_fronts[0]
+
+def sortNDHelperA(fitnesses, obj, front):
+    """Create a non-dominated sorting of S on the first M objectives"""
+    if len(fitnesses) < 2:
+        return
+    elif len(fitnesses) == 2:
+        # Only two individuals, compare them and adjust front number
+        s1, s2 = fitnesses[0], fitnesses[1]
+        if isDominated(s2[:obj+1], s1[:obj+1]):
+            front[s2] = max(front[s2], front[s1] + 1)
+    elif obj == 1:
+        sweepA(fitnesses, front)
+    elif len(frozenset(map(itemgetter(obj), fitnesses))) == 1:
+        #All individuals for objective M are equal: go to objective M-1
+        sortNDHelperA(fitnesses, obj-1, front)
+    else:
+        # More than two individuals, split list and then apply recursion
+        best, worst = splitA(fitnesses, obj)
+        sortNDHelperA(best, obj, front)
+        sortNDHelperB(best, worst, obj-1, front)
+        sortNDHelperA(worst, obj, front)
+
+def splitA(fitnesses, obj):
+    """Partition the set of fitnesses in two according to the median of
+    the objective index *obj*. The values equal to the median are put in
+    the set containing the least elements.
+    """
+    median_ = median(fitnesses, itemgetter(obj))
+    best_a, worst_a = [], []
+    best_b, worst_b = [], []
+
+    for fit in fitnesses:
+        if fit[obj] > median_:
+            best_a.append(fit)
+            best_b.append(fit)
+        elif fit[obj] < median_:
+            worst_a.append(fit)
+            worst_b.append(fit)
+        else:
+            best_a.append(fit)
+            worst_b.append(fit)
+
+    balance_a = abs(len(best_a) - len(worst_a))
+    balance_b = abs(len(best_b) - len(worst_b))
+
+    if balance_a <= balance_b:
+        return best_a, worst_a
+    else:
+        return best_b, worst_b
+
+def sweepA(fitnesses, front):
+    """Update rank number associated to the fitnesses according
+    to the first two objectives using a geometric sweep procedure.
+    """
+    stairs = [-fitnesses[0][1]]
+    fstairs = [fitnesses[0]]
+    for fit in fitnesses[1:]:
+        idx = bisect.bisect_right(stairs, -fit[1])
+        if 0 < idx <= len(stairs):
+            fstair = max(fstairs[:idx], key=front.__getitem__)
+            front[fit] = max(front[fit], front[fstair]+1)
+        for i, fstair in enumerate(fstairs[idx:], idx):
+            if front[fstair] == front[fit]:
+                del stairs[i]
+                del fstairs[i]
+                break
+        stairs.insert(idx, -fit[1])
+        fstairs.insert(idx, fit)
+
+def sortNDHelperB(best, worst, obj, front):
+    """Assign front numbers to the solutions in H according to the solutions
+    in L. The solutions in L are assumed to have correct front numbers and the
+    solutions in H are not compared with each other, as this is supposed to
+    happen after sortNDHelperB is called."""
+    key = itemgetter(obj)
+    if len(worst) == 0 or len(best) == 0:
+        #One of the lists is empty: nothing to do
+        return
+    elif len(best) == 1 or len(worst) == 1:
+        #One of the lists has one individual: compare directly
+        for hi in worst:
+            for li in best:
+                if isDominated(hi[:obj+1], li[:obj+1]) or hi[:obj+1] == li[:obj+1]:
+                    front[hi] = max(front[hi], front[li] + 1)
+    elif obj == 1:
+        sweepB(best, worst, front)
+    elif key(min(best, key=key)) >= key(max(worst, key=key)):
+        #All individuals from L dominate H for objective M:
+        #Also supports the case where every individuals in L and H
+        #has the same value for the current objective
+        #Skip to objective M-1
+        sortNDHelperB(best, worst, obj-1, front)
+    elif key(max(best, key=key)) >= key(min(worst, key=key)):
+        best1, best2, worst1, worst2 = splitB(best, worst, obj)
+        sortNDHelperB(best1, worst1, obj, front)
+        sortNDHelperB(best1, worst2, obj-1, front)
+        sortNDHelperB(best2, worst2, obj, front)
+
+def splitB(best, worst, obj):
+    """Split both best individual and worst sets of fitnesses according
+    to the median of objective *obj* computed on the set containing the
+    most elements. The values equal to the median are attributed so as
+    to balance the four resulting sets as much as possible.
+    """
+    median_ = median(best if len(best) > len(worst) else worst, itemgetter(obj))
+    best1_a, best2_a, best1_b, best2_b = [], [], [], []
+    for fit in best:
+        if fit[obj] > median_:
+            best1_a.append(fit)
+            best1_b.append(fit)
+        elif fit[obj] < median_:
+            best2_a.append(fit)
+            best2_b.append(fit)
+        else:
+            best1_a.append(fit)
+            best2_b.append(fit)
+
+    worst1_a, worst2_a, worst1_b, worst2_b = [], [], [], []
+    for fit in worst:
+        if fit[obj] > median_:
+            worst1_a.append(fit)
+            worst1_b.append(fit)
+        elif fit[obj] < median_:
+            worst2_a.append(fit)
+            worst2_b.append(fit)
+        else:
+            worst1_a.append(fit)
+            worst2_b.append(fit)
+
+    balance_a = abs(len(best1_a) - len(best2_a) + len(worst1_a) - len(worst2_a))
+    balance_b = abs(len(best1_b) - len(best2_b) + len(worst1_b) - len(worst2_b))
+
+    if balance_a <= balance_b:
+        return best1_a, best2_a, worst1_a, worst2_a
+    else:
+        return best1_b, best2_b, worst1_b, worst2_b
+
+def sweepB(best, worst, front):
+    """Adjust the rank number of the worst fitnesses according to
+    the best fitnesses on the first two objectives using a sweep
+    procedure.
+    """
+    stairs, fstairs = [], []
+    iter_best = iter(best)
+    next_best = next(iter_best, False)
+    for h in worst:
+        while next_best and h[:2] <= next_best[:2]:
+            insert = True
+            for i, fstair in enumerate(fstairs):
+                if front[fstair] == front[next_best]:
+                    if fstair[1] > next_best[1]:
+                        insert = False
+                    else:
+                        del stairs[i], fstairs[i]
+                    break
+            if insert:
+                idx = bisect.bisect_right(stairs, -next_best[1])
+                stairs.insert(idx, -next_best[1])
+                fstairs.insert(idx, next_best)
+            next_best = next(iter_best, False)
+
+        idx = bisect.bisect_right(stairs, -h[1])
+        if 0 < idx <= len(stairs):
+            fstair = max(fstairs[:idx], key=front.__getitem__)
+            front[h] = max(front[h], front[fstair]+1)
