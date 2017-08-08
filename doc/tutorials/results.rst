@@ -15,11 +15,9 @@ Here is how to get a nice pairwise plot of each parameter with the loss. ::
 
     conn = SQLiteConnection("sqlite:///chocolate.db")
     results = conn.results_as_dataframe()
+    results = pd.melt(results, id_vars=["loss"], value_name='value', var_name="variable")
 
-    g = sns.PairGrid(results, hue="loss", vars=["learning_rate", "n_estimators",
-                                             "max_depth", "subsample"])
-    g = g.map_diag(plt.hist)
-    g = g.map_offdiag(plt.scatter)
+    sns.lmplot(x="value", y="loss", data=results, col="variable", col_wrap=3, sharex=False)
 
     plt.show()
 
