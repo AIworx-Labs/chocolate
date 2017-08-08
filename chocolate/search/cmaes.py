@@ -407,7 +407,48 @@ class MOCMAES(SearchAlgorithm):
         self.params = params
 
     def _next(self, token=None):
-        pass
+        """Retrieve the next point to evaluate based on available data in the
+        database. Each time :meth:`next` is called, the algorithm will reinitialize
+        it-self based on the data in the database.
+
+        Returns:
+            A tuple containing a unique token and a fully qualified parameter set.
+        """
+        self._init()
+
+        # Check what is available in that database
+        results = {r["_chocolate_id"]: r for r in self.conn.all_results()}
+        ancestors, ancestors_ids = self._load_ancestors(results)
+        bootstrap = self._load_bootstrap(results, ancestors_ids)
+    
+    def _init(self):
+        self.parents = list()
+        self.dim = len(self.parents[0])
+
+        # Selection
+        self.mu = self.params.get("mu", len(self.parents))
+        self.lambda_ = self.params.get("lambda_", 1)
+
+        # Step size control
+        self.d = self.params.get("d", 1.0 + self.dim / 2.0)
+        self.ptarg = self.params.get("ptarg", 1.0 / (5.0 + 0.5))
+        self.cp = self.params.get("cp", self.ptarg / (2.0 + self.ptarg))
+
+        # Covariance matrix adaptation
+        self.cc = self.params.get("cc", 2.0 / (self.dim + 2.0))
+        self.ccov = self.params.get("ccov", 2.0 / (self.dim ** 2 + 6.0))
+        self.pthresh = self.params.get("pthresh", 0.44)
+
+        # Internal parameters associated to the mu parent
+        self.sigmas = [sigma] * len(population)
+        # Lower Cholesky matrix (Sampling matrix)
+        self.A = [numpy.identity(self.dim) for _ in range(len(population))]
+        # Inverse Cholesky matrix (Used in the update of A)
+        self.invCholesky = [numpy.identity(self.dim) for _ in range(len(population))]
+        self.pc = [numpy.zeros(self.dim) for _ in range(len(population))]
+        self.psucc = [self.ptarg] * len(population)
+
+        self.indicator = self.params.get("indicator", tools.hypervolume)
 
     def _generate(self):
         n_I_R = self.i_I_R.shape[0]
