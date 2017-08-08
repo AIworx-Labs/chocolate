@@ -27,11 +27,11 @@ def main():
          "max_depth": choco.quantized_uniform(2, 25, 1),
          "subsample": choco.uniform(0.7, 1.0)}
 
-    sampler = choco.QuasiRandom(conn, s, random_state=110, skip=3)
-    token, params = sampler.next()
-    loss = score_gbt(X, y, params)
-    sampler.update(token, loss)
-
+    sampler = choco.QuasiRandom(conn, s, seed=110, skip=3)
+    for _ in range(50):
+        token, params = sampler.next()
+        loss = score_gbt(X, y, params)
+        sampler.update(token, loss)
 
 if __name__ == "__main__":
     main()
