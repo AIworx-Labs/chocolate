@@ -107,7 +107,7 @@ class CMAES(SearchAlgorithm):
             # Add the step to the complementary table
             # Transform to dict with parameter names
             entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry.update(_ancestor_id=-1, _invalid=0, _search_algo="cmaes", **token)
+            entry.update(_ancestor_id=-1, _invalid=0, **token)
             self.conn.insert_complementary(entry)
 
         else:
@@ -142,7 +142,7 @@ class CMAES(SearchAlgorithm):
                 # Add the step to the complementary table
                 # Transform to dict with parameter names
                 entry = {str(k): v for k, v in zip(self.space.names(), y)}
-                entry.update(_ancestor_id=ancestor_id, _invalid=invalid, _search_algo="cmaes", **token)
+                entry.update(_ancestor_id=ancestor_id, _invalid=invalid, **token)
                 self.conn.insert_complementary(entry)
 
         # Signify the first point to others using loss set to None
