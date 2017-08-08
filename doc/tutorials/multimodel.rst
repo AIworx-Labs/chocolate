@@ -17,16 +17,17 @@ one for each model. ::
 
     from sklearn.svm import SVC, LinearSVC
     import chocolate as choco
+    import pickle
 
-    space = [{"algo" : SVC, "kernel" : "rbf",
+    space = [{"algo" : pickle.dumps(SVC), "kernel" : "rbf",
                   "C" : choco.log(low=-2, high=10, base=10),
                   "gamma" : choco.log(low=-9, high=3, base=10)},
-             {"algo" : SVC, "kernel" : "poly",
+             {"algo" : pickle.dumps(SVC), "kernel" : "poly",
                   "C" : choco.log(low=-2, high=10, base=10),
                   "gamma" : choco.log(low=-9, high=3, base=10),
                   "degree" : choco.quantized_uniform(low=1, high=5, step=1),
                   "coef0" : choco.uniform(low=-1, high=1)},
-             {"algo" : LinearSVC,
+             {"algo" : pickle.dumps(LinearSVC),
                   "C" : choco.log(low=-2, high=10, base=10),
                   "penalty" : choco.choice(["l1", "l2"])}]
 
@@ -41,7 +42,7 @@ the loss. Thus, we shall return the negative of the F1 score.::
     def score_svm(X, y, algo, **params):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-        clf = algo(**params)
+        clf = pickle.loads(algo)(**params)
         clf.fit(X_train, y_train)
         y_pred = clf.predict(X_test)
 
