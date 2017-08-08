@@ -104,23 +104,11 @@ class CMAES(SearchAlgorithm):
             # out = numpy.ones(self.dim) / 2.0
             out = self.random_state.rand(self.dim)
 
-            # Signify the first point to others using loss set to None
-            # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            # entry["_loss"] = None
-            entry.update(token)
-            self.conn.insert_result(entry)
-
             # Add the step to the complementary table
             # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
+            entry = {str(k): v for k, v in zip(self.space.names(), out)}
             entry.update(_ancestor_id=-1, _invalid=0, _search_algo="cmaes", **token)
             self.conn.insert_complementary(entry)
-
-            # return the true parameter set
-            return token, self.space(out)
 
         else:
             # Simulate the CMA-ES update for each ancestor.
@@ -153,21 +141,18 @@ class CMAES(SearchAlgorithm):
 
                 # Add the step to the complementary table
                 # Transform to dict with parameter names
-                # entry = {str(k): v for k, v in zip(self.space.names(), y)}
-                entry = self.space(y, transform=False)
+                entry = {str(k): v for k, v in zip(self.space.names(), y)}
                 entry.update(_ancestor_id=ancestor_id, _invalid=invalid, _search_algo="cmaes", **token)
                 self.conn.insert_complementary(entry)
 
-            # Signify next point to others using loss set to None
-            # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            # entry["_loss"] = None
-            entry.update(token)
-            self.conn.insert_result(entry)
+        # Signify the first point to others using loss set to None
+        # Transform to dict with parameter names
+        entry = {str(k): v for k, v in zip(self.space.names(), out)}
+        entry.update(token)
+        self.conn.insert_result(entry)
 
-            # return the true parameter set
-            return token, self.space(out)
+        # return the true parameter set
+        return token, self.space(out)
 
     def _init(self):
         self.parent = None
@@ -224,7 +209,7 @@ class CMAES(SearchAlgorithm):
 
             if c["_invalid"] == 0:
                 candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
-                candidate["loss"] = results[c["_chocolate_id"]]["_loss"]
+                candidate["loss"] = results[c["_chocolate_id"]].get("_loss", None)
 
             ancestors.append(candidate)
             ancestors_ids.add(candidate["chocolate_id"])
@@ -369,9 +354,9 @@ class CMAES(SearchAlgorithm):
         # Mixed integer CMA-ES is developped for (mu/mu , lambda)
         # We have a (1 + 1) setting, the integer will be probabilistic.
         # The integer mutation is lambda / 2 if all dimensions are integers or
-        # min(lambda / 2 - 1, lambda / 10 + n_I_R + 1), minus 1 accounts for 
+        # min(lambda / 2 - 1, lambda / 10 + n_I_R + 1), minus 1 accounts for
         # the last new candidate getting its integer mutation from the last best
-        # solution. 
+        # solution.
         if n_I_R == self.dim:
             p = 0.5
         else:

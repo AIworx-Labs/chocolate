@@ -153,11 +153,36 @@ class TestBayes(unittest.TestCase):
         out = self.search._acquisition(gp, y)
         self.assertIsNotNone(out)
 
+    def test_conditional_n_steps(self):
+        s = [{"a": uniform(1, 10), "b": uniform(5, 15), "C": 0},
+             {"c": uniform(2, 3), "C": 1}]
+
+        db = list()
+
+        self.mock_conn = MagicMock(name="connection")
+        self.mock_conn.get_space.return_value = Space(s)
+        self.mock_conn.all_results.return_value = db
+        self.mock_conn.count_results.return_value = 0
+
+        self.search = Bayes(self.mock_conn, s)
+
+        for i in range(15):
+            token, p = self.search.next()
+
+            self.assertIn("_chocolate_id", token)
+            self.assertEqual(token["_chocolate_id"], i)
+
+            entry = self.mock_conn.insert_result.call_args[0][0]
+            entry["_loss"] = numpy.random.randn()
+
+            db.append(entry)
+            self.mock_conn.count_results.return_value = len(db)
+
     def _create_fake_db(self):
         db = [{
             "_chocolate_id": i,
             "a":             numpy.random.random(),
             "b":             numpy.random.random(),
             "_loss":         numpy.random.random()
-        } for i in range(100)]
+        } for i in range(25)]
         return db
