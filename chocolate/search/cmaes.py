@@ -4,6 +4,7 @@ from operator import itemgetter
 import numpy
 
 from ..base import SearchAlgorithm
+from ..mo import argsortNondominated, dominates, hypervolume_indicator
 
 
 class CMAES(SearchAlgorithm):
@@ -88,7 +89,7 @@ class CMAES(SearchAlgorithm):
 
         # Rank-mu update on individuals created from another algorithm
         self._bootstrap(bootstrap)
-        # _bootstrab sets the parent if enough candidates are available (>= 4)
+        # _bootstrap sets the parent if enough candidates are available (>= 4)
 
         # If the parent is still None and ancestors are available
         # set the parent to the first evaluated candidate if any
@@ -326,7 +327,7 @@ class CMAES(SearchAlgorithm):
             else:
                 ccovn = self.ccovn
             self.A = numpy.sqrt(1 + ccovn) * self.A + numpy.sqrt(1 + ccovn) / n_z2 * (
-            numpy.sqrt(1 - ccovn * n_z2 / (1 + ccovn)) - 1) * numpy.dot(self.A, numpy.outer(z, z))
+                numpy.sqrt(1 - ccovn * n_z2 / (1 + ccovn)) - 1) * numpy.dot(self.A, numpy.outer(z, z))
             self.C = numpy.dot(self.A, self.A.T)  # Yup we still have an update o C
 
         # Keep a list of ancestors sorted by order of appearance
@@ -420,10 +421,49 @@ class MOCMAES(SearchAlgorithm):
         results = {r["_chocolate_id"]: r for r in self.conn.all_results()}
         ancestors, ancestors_ids = self._load_ancestors(results)
         bootstrap = self._load_bootstrap(results, ancestors_ids)
-    
+
+        # Select mu parents from the individuals created by another algorithm
+        self.parents = [bootstrap[i] for i in self._select(bootstrap)]
+
+        # Generate the next point
+        token = token or {}
+        token.update({"_chocolate_id": self.conn.count_results()})
+
+        if len(self.parents) < self.mu:
+            # There is not enough parents yet, generate some at random
+            # We don't add those in the complementary db
+            out = self.random_state.rand(self.dim)
+
+        else:
+            # Do CMA-ES update for each ancestor
+            # Ancestors are already sorted by chocolate_id
+            for c in ancestors:
+                self._update_internals(c)
+
+            invalid = 1
+            while invalid > 0:
+                out, y, p_idx = self._generate()
+
+                # Encode constraint violation
+                invalid = sum(2 ** (2 * i) for i, xi in enumerate(out) if xi < 0)
+                invalid += sum(2 ** (2 * i + 1) for i, xi in enumerate(out) if xi >= 1)
+
+                # Add the step to the complementary table
+                entry = {str(k): v for k, v in zip(self.space.names(), y)}
+                entry.update(_parent_idx=p_idx, _invalid=invalid, **token)
+                self.conn.insert_complementary(entry)
+
+        # Transform to dict with parameter names
+        entry = {str(k): v for k, v in zip(self.space.names(), out)}
+        entry.update(token)
+        self.conn.insert_result(entry)
+
+        # return the true parameter set
+        return token, self.space(out)
+
     def _init(self):
         self.parents = list()
-        self.dim = len(self.parents[0])
+        self.dim = len(self.space)
 
         # Selection
         self.mu = self.params.get("mu", len(self.parents))
@@ -437,21 +477,208 @@ class MOCMAES(SearchAlgorithm):
         # Covariance matrix adaptation
         self.cc = self.params.get("cc", 2.0 / (self.dim + 2.0))
         self.ccov = self.params.get("ccov", 2.0 / (self.dim ** 2 + 6.0))
+        self.beta = self.params.get("beta", 0.1 / (self.dim + 2.0))
         self.pthresh = self.params.get("pthresh", 0.44)
 
         # Internal parameters associated to the mu parent
-        self.sigmas = [sigma] * len(population)
-        # Lower Cholesky matrix (Sampling matrix)
-        self.A = [numpy.identity(self.dim) for _ in range(len(population))]
-        # Inverse Cholesky matrix (Used in the update of A)
-        self.invCholesky = [numpy.identity(self.dim) for _ in range(len(population))]
-        self.pc = [numpy.zeros(self.dim) for _ in range(len(population))]
-        self.psucc = [self.ptarg] * len(population)
+        self.sigmas = [sigma] * self.mu
+        self.C = [numpy.identity(self.dim) for _ in range(self.mu)]
+        self.A = [numpy.linalg.cholesky(self.C[i]) for i in range(self.mu)]
+        self.pc = [numpy.zeros(self.dim) for _ in range(self.mu)]
+        self.psucc = [self.ptarg] * self.mu
 
-        self.indicator = self.params.get("indicator", tools.hypervolume)
+        self.indicator = self.params.get("indicator", hypervolume_indicator)
+
+        # Constraint vectors for covariance adaptation
+        # We work in the unit box [0, 1)
+        self.constraints = [numpy.zeros((self.dim * 2, self.dim)) for _ in range(self.mu)]
+
+        self.S_int = numpy.zeros(self.dim)
+        for i, s in enumerate(self.space.steps()):
+            if s is not None:
+                self.S_int[i] = s
+
+        # Integer mutation parameters
+        im = numpy.flatnonzero(2 * self.sigma * numpy.diag(self.C[0]) ** 0.5 < self.S_int)
+        self.i_I_R = [im.copy() for i in range(self.mu)]
+
+    def _load_ancestors(self, results):
+        # Get a list of the actual ancestor and the complementary information
+        # on that ancestor
+        ancestors = list()
+        ancestors_ids = set()
+        for c in sorted(self.conn.all_complementary(), key=itemgetter("_chocolate_id")):
+            candidate = dict()
+            candidate["step"] = numpy.array([c[str(k)] for k in self.space.names()])
+            candidate["chocolate_id"] = c["_chocolate_id"]
+            candidate["parent_idx"] = c["_parent_idx"]
+            candidate["invalid"] = c["_invalid"]
+            candidate["loss"] = None
+
+            if c["_invalid"] == 0:
+                candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
+                losses = list(v for k, v in sorted(results[c["_chocolate_id"]].items()) if k.startswith("_loss"))
+                if len(losses) > 0:
+                    candidate["loss"] = losses
+
+            ancestors.append(candidate)
+            ancestors_ids.add(candidate["chocolate_id"])
+
+        return ancestors, ancestors_ids
+
+    def _load_bootstrap(self, results, ancestors_ids):
+        # Find individuals produced by another algorithm
+        bootstrap = list()
+        for _, c in sorted(results.items()):
+            # Skip those included in ancestors
+            if c["_chocolate_id"] in ancestors_ids:
+                continue
+
+            candidate = dict()
+            # The initial distribution is assumed uniform and centred on 0.5^n
+            candidate["step"] = numpy.array([c[str(k)] - 0.5 for k in self.space.names()])
+            candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
+            candidate["chocolate_id"] = c["_chocolate_id"]
+            candidate["ancestor_id"] = -1
+            # Compute constraint violation
+            candidate["invalid"] = sum(2 ** (2 * i) for i, xi in enumerate(candidate["X"]) if xi < 0)
+            candidate["invalid"] += sum(2 ** (2 * i + 1) for i, xi in enumerate(candidate["X"]) if xi >= 1)
+            candidate["loss"] = None
+
+            if candidate["invalid"] == 0:
+                losses = list(v for k, v in sorted(results[c["_chocolate_id"]].items()) if k.startswith("_loss"))
+                if len(losses) > 0:
+                    candidate["loss"] = losses
+
+            bootstrap.append(candidate)
+
+        return bootstrap
+
+    def _select(self, candidates):
+        """Returns the indices of the selected individuals"""
+        if len(candidates) <= self.mu:
+            return candidates, []
+
+        pareto_fronts = argsortNondominated(candidates, len(candidates))
+
+        chosen = list()
+        mid_front = None
+
+        # Fill the next population (chosen) with the fronts until there is not enouch space
+        # When an entire front does not fit in the space left we rely on the hypervolume
+        # for this front
+        # The remaining fronts are explicitely not chosen
+        full = False
+        for front in pareto_fronts:
+            if len(chosen) + len(front) <= self.mu and not full:
+                chosen += front
+            elif mid_front is None and len(chosen) < self.mu:
+                mid_front = front
+                # With this front, we selected enough individuals
+                full = True
+
+        # Separate the mid front to accept only k individuals
+        k = self.mu - len(chosen)
+        if k > 0:
+            # reference point is chosen in the complete population
+            # as the worst in each dimension +1
+            # It is mostly arbitrary
+            ref = numpy.array([c["loss"] for c in candidates])
+            ref = numpy.max(ref, axis=0) + 1
+
+            for _ in range(len(mid_front) - k):
+                idx = self.indicator(mid_front, ref=ref)
+                mid_front.pop(idx)
+
+            chosen += mid_front
+
+        return chosen
+
+    # def _rankOneUpdate(self, invCholesky, A, alpha, beta, v):
+    #     w = numpy.dot(invCholesky, v)
+
+    #     # Under this threshold, the update is mostly noise
+    #     if w.max() > 1e-20:
+    #         w_inv = numpy.dot(w, invCholesky)
+    #         norm_w2 = numpy.sum(w ** 2)
+    #         a = sqrt(alpha)
+    #         root = numpy.sqrt(1 + beta / alpha * norm_w2)
+    #         b = a / norm_w2 * (root - 1)
+
+    #         A = a * A + b * numpy.outer(v, w)
+    #         invCholesky = 1.0 / a * invCholesky - b / (a ** 2 + a * b * norm_w2) * numpy.outer(w, w_inv)
+
+    #     return invCholesky, A
+
+    def _update_internals(self, candidate):
+        assert len(self.parents) == self.mu, "Invalid number of parents in MO-CMA-ES internal update"
+        assert all("loss" in p for p in self.parents), "One parent has no loss in MO-CMA-ES internal update"
+        assert all(p["loss"] is not None for p in self.parents), "Loss is None for a parent in MO-CMA-ES"
+
+        if candidate["invalid"] > 0:
+            self._update_invalid(candidate)
+            return
+
+        p_idx = andidate["_parent_idx"]
+        chosen = self._select(self.parents + [candidate])
+        candidate_is_chosen = self.mu in chosen
+
+        # Only psucc and sigma of parent are update
+        self.psucc[p_idx] = (1.0 - self.cp) * self.psucc[p_idx] + self.cp * candidate_is_chosen
+        self.sigmas[p_idx] = self.sigmas[p_idx] * exp((self.psucc[p_idx] - self.ptarg) / (self.d * (1.0 - self.ptarg)))
+
+        if candidate_is_chosen:
+            if self.psucc[p_idx] < self.pthresh:
+                pc = (1 - self.cc) * self.pc[p_idx] + numpy.sqrt(self.cc * (2 - self.cc)) * candidate["step"] / last_step[p_idx]
+                C = (1 - self.ccov) * self.C[p_idx] + self.ccov * numpy.outer(pc, pc)
+                # invCholesky, A = self._rankOneUpdate(self.invCholesky[p_idx], self.A[p_idx], 1 - self.ccov, self.ccov, pc)
+            else:
+                pc = (1.0 - cc) * self.pc[p_idx]
+                C = (1 - self.ccov) * self.C[p_idx] + self.ccov * (numpy.outer(pc, pc) + self.cc * (2 - self.cc) * self.C[p_idx])
+                #pc_weight = self.cc * (2.0 - self.cc)
+                #invCholesky, A = self._rankOneUpdate(self.invCholesky[p_idx], self.A[p_idx], 1 - self.cconv + pc_weight, self.cconv, pc)
+
+            # Replace the unselected parent parameters by those of the candidate
+            not_chosen = set(range(self.mu + 1)) - set(chosen)
+            self.parents[not_chosen] = candidate
+            self.psucc[not_chosen] = self.psucc[p_idx]
+            self.sigmas[not_chosen] = self.sigmas[p_idx]
+            self.pc[not_chosen] = pc
+            self.A[not_chosen] = numpy.linalg.cholesky(C)
+            self.C[not_chosen] = C
+            # self.invCholesky[not_chosen] = invCholesky
+
+        # Update the dimensions where integer mutation is needed
+        self.i_I_R[p_idx] = numpy.flatnonzero(2 * self.sigmas[p_idx] * numpy.diag(self.C[p_idx]) ** 0.5 < self.S_int)
+
+    def _update_invalid(self, candidate):
+        # Process all invalid individuals
+        p_idx = candidate["_parent_idx"]
+        sum_vw = 0
+        invalid_count = 0
+        inv_A = numpy.linalg.inv(self.A[p_idx])
+
+        _, invalids = bin(candidate["invalid"]).split("b")
+
+        for j, b in enumerate(reversed(invalids)):
+            if b == "1":
+                self.constraints[p_idx][j, :] = (1 - self.cc) * self.constraints[p_idx][j, :] + self.cc * candidate["step"]
+                w = numpy.dot(inv_A, self.constraints[p_idx][j, :])
+                sum_vw += numpy.outer(self.constraints[p_idx][j, :], w) / numpy.inner(w, w)
+                invalid_count += 1
+
+        # Update A and make changes in C since in other updates we use C
+        self.A[p_idx] = self.A[p_idx] - (self.beta / invalid_count) * sum_vw
+        self.C[p_idx] = numpy.dot(self.A[p_idx], self.A[p_idx].T)
 
     def _generate(self):
-        n_I_R = self.i_I_R.shape[0]
+        # Select the parent at random from the non dominated set of parents
+        ndom = argsortLogNondominated(self.parents, len(self.parents), first_front_only=True)
+        idx = numpy.random.randint(0, len(ndom))
+        # ndom contains the indices of the parents
+        p_idx = ndom[idx]
+
+        n_I_R = self.i_I_R[p_idx].shape[0]
         R_int = numpy.zeros(self.dim)
 
         # Mixed integer CMA-ES is developped for (mu/mu , lambda)
@@ -472,266 +699,14 @@ class MOCMAES(SearchAlgorithm):
             # Ri' has exactly one of its components set to one.
             # The Ri' are dependent in that the number of mutations for each coordinate
             # differs at most by one.
-            j = self.random_state.choice(self.i_I_R)
+            j = self.random_state.choice(self.i_I_R[p_idx])
             Rp[j] = 1
             Rpp[j] = self.random_state.geometric(p=0.7 ** (1.0 / n_I_R)) - 1
 
             I_pm1 = (-1) ** self.random_state.randint(0, 2, self.dim)
             R_int = I_pm1 * (Rp + Rpp)
 
-        y = numpy.dot(self.random_state.standard_normal(self.dim), self.A.T)
+        y = numpy.dot(self.random_state.standard_normal(self.dim), self.A[p_idx].T)
+        arz = self.parents[p_idx]["X"] + self.sigma[p_idx] * y + self.S_int * R_int
 
-        # Select the parent at random from the non dominated set of parents
-        ndom = sortLogNondominated(self.parents, len(self.parents), first_front_only=True)
-        pi = numpy.random.randint(0, len(ndom))
-
-        arz = self.parents[pi]["X"] + self.sigma[pi] * y + self.S_int * R_int
-
-        return arz, y
-
-
-####################
-# Helper functions #
-####################
-
-def identity(obj):
-    """Returns directly the argument *obj*.
-    """
-    return obj
-
-def isDominated(wvalues1, wvalues2):
-    """Returns whether or not *wvalues1* dominates *wvalues2*.
-
-    :param wvalues1: The weighted fitness values that would be dominated.
-    :param wvalues2: The weighted fitness values of the dominant.
-    :returns: :obj:`True` if wvalues2 dominates wvalues1, :obj:`False`
-              otherwise.
-    """
-    not_equal = False
-    for self_wvalue, other_wvalue in zip(wvalues1, wvalues2):
-        if self_wvalue > other_wvalue:
-            return False
-        elif self_wvalue < other_wvalue:
-            not_equal = True
-    return not_equal
-
-def median(seq, key=identity):
-    """Returns the median of *seq* - the numeric value separating the higher
-    half of a sample from the lower half. If there is an even number of
-    elements in *seq*, it returns the mean of the two middle values.
-    """
-    sseq = sorted(seq, key=key)
-    length = len(seq)
-    if length % 2 == 1:
-        return key(sseq[(length - 1) // 2])
-    else:
-        return (key(sseq[(length - 1) // 2]) + key(sseq[length // 2])) / 2.0
-
-def sortLogNondominated(individuals, k, first_front_only=False):
-    """Sort *individuals* in pareto non-dominated fronts using the Generalized
-    Reduced Run-Time Complexity Non-Dominated Sorting Algorithm presented by
-    Fortin et al. (2013).
-
-    :param individuals: A list of individuals to select from.
-    :returns: A list of Pareto fronts (lists), with the first list being the
-              true Pareto front.
-    """
-    if k == 0:
-        return []
-
-    #Separate individuals according to unique fitnesses
-    unique_fits = defaultdict(list)
-    for i, ind in enumerate(individuals):
-        unique_fits[ind.fitness.wvalues].append(ind)
-
-    #Launch the sorting algorithm
-    obj = len(individuals[0].fitness.wvalues)-1
-    fitnesses = unique_fits.keys()
-    front = dict.fromkeys(fitnesses, 0)
-
-    # Sort the fitnesses lexicographically.
-    fitnesses.sort(reverse=True)
-    sortNDHelperA(fitnesses, obj, front)
-
-    #Extract individuals from front list here
-    nbfronts = max(front.values())+1
-    pareto_fronts = [[] for i in range(nbfronts)]
-    for fit in fitnesses:
-        index = front[fit]
-        pareto_fronts[index].extend(unique_fits[fit])
-
-    # Keep only the fronts required to have k individuals.
-    if not first_front_only:
-        count = 0
-        for i, front in enumerate(pareto_fronts):
-            count += len(front)
-            if count >= k:
-                return pareto_fronts[:i+1]
-        return pareto_fronts
-    else:
-        return pareto_fronts[0]
-
-def sortNDHelperA(fitnesses, obj, front):
-    """Create a non-dominated sorting of S on the first M objectives"""
-    if len(fitnesses) < 2:
-        return
-    elif len(fitnesses) == 2:
-        # Only two individuals, compare them and adjust front number
-        s1, s2 = fitnesses[0], fitnesses[1]
-        if isDominated(s2[:obj+1], s1[:obj+1]):
-            front[s2] = max(front[s2], front[s1] + 1)
-    elif obj == 1:
-        sweepA(fitnesses, front)
-    elif len(frozenset(map(itemgetter(obj), fitnesses))) == 1:
-        #All individuals for objective M are equal: go to objective M-1
-        sortNDHelperA(fitnesses, obj-1, front)
-    else:
-        # More than two individuals, split list and then apply recursion
-        best, worst = splitA(fitnesses, obj)
-        sortNDHelperA(best, obj, front)
-        sortNDHelperB(best, worst, obj-1, front)
-        sortNDHelperA(worst, obj, front)
-
-def splitA(fitnesses, obj):
-    """Partition the set of fitnesses in two according to the median of
-    the objective index *obj*. The values equal to the median are put in
-    the set containing the least elements.
-    """
-    median_ = median(fitnesses, itemgetter(obj))
-    best_a, worst_a = [], []
-    best_b, worst_b = [], []
-
-    for fit in fitnesses:
-        if fit[obj] > median_:
-            best_a.append(fit)
-            best_b.append(fit)
-        elif fit[obj] < median_:
-            worst_a.append(fit)
-            worst_b.append(fit)
-        else:
-            best_a.append(fit)
-            worst_b.append(fit)
-
-    balance_a = abs(len(best_a) - len(worst_a))
-    balance_b = abs(len(best_b) - len(worst_b))
-
-    if balance_a <= balance_b:
-        return best_a, worst_a
-    else:
-        return best_b, worst_b
-
-def sweepA(fitnesses, front):
-    """Update rank number associated to the fitnesses according
-    to the first two objectives using a geometric sweep procedure.
-    """
-    stairs = [-fitnesses[0][1]]
-    fstairs = [fitnesses[0]]
-    for fit in fitnesses[1:]:
-        idx = bisect.bisect_right(stairs, -fit[1])
-        if 0 < idx <= len(stairs):
-            fstair = max(fstairs[:idx], key=front.__getitem__)
-            front[fit] = max(front[fit], front[fstair]+1)
-        for i, fstair in enumerate(fstairs[idx:], idx):
-            if front[fstair] == front[fit]:
-                del stairs[i]
-                del fstairs[i]
-                break
-        stairs.insert(idx, -fit[1])
-        fstairs.insert(idx, fit)
-
-def sortNDHelperB(best, worst, obj, front):
-    """Assign front numbers to the solutions in H according to the solutions
-    in L. The solutions in L are assumed to have correct front numbers and the
-    solutions in H are not compared with each other, as this is supposed to
-    happen after sortNDHelperB is called."""
-    key = itemgetter(obj)
-    if len(worst) == 0 or len(best) == 0:
-        #One of the lists is empty: nothing to do
-        return
-    elif len(best) == 1 or len(worst) == 1:
-        #One of the lists has one individual: compare directly
-        for hi in worst:
-            for li in best:
-                if isDominated(hi[:obj+1], li[:obj+1]) or hi[:obj+1] == li[:obj+1]:
-                    front[hi] = max(front[hi], front[li] + 1)
-    elif obj == 1:
-        sweepB(best, worst, front)
-    elif key(min(best, key=key)) >= key(max(worst, key=key)):
-        #All individuals from L dominate H for objective M:
-        #Also supports the case where every individuals in L and H
-        #has the same value for the current objective
-        #Skip to objective M-1
-        sortNDHelperB(best, worst, obj-1, front)
-    elif key(max(best, key=key)) >= key(min(worst, key=key)):
-        best1, best2, worst1, worst2 = splitB(best, worst, obj)
-        sortNDHelperB(best1, worst1, obj, front)
-        sortNDHelperB(best1, worst2, obj-1, front)
-        sortNDHelperB(best2, worst2, obj, front)
-
-def splitB(best, worst, obj):
-    """Split both best individual and worst sets of fitnesses according
-    to the median of objective *obj* computed on the set containing the
-    most elements. The values equal to the median are attributed so as
-    to balance the four resulting sets as much as possible.
-    """
-    median_ = median(best if len(best) > len(worst) else worst, itemgetter(obj))
-    best1_a, best2_a, best1_b, best2_b = [], [], [], []
-    for fit in best:
-        if fit[obj] > median_:
-            best1_a.append(fit)
-            best1_b.append(fit)
-        elif fit[obj] < median_:
-            best2_a.append(fit)
-            best2_b.append(fit)
-        else:
-            best1_a.append(fit)
-            best2_b.append(fit)
-
-    worst1_a, worst2_a, worst1_b, worst2_b = [], [], [], []
-    for fit in worst:
-        if fit[obj] > median_:
-            worst1_a.append(fit)
-            worst1_b.append(fit)
-        elif fit[obj] < median_:
-            worst2_a.append(fit)
-            worst2_b.append(fit)
-        else:
-            worst1_a.append(fit)
-            worst2_b.append(fit)
-
-    balance_a = abs(len(best1_a) - len(best2_a) + len(worst1_a) - len(worst2_a))
-    balance_b = abs(len(best1_b) - len(best2_b) + len(worst1_b) - len(worst2_b))
-
-    if balance_a <= balance_b:
-        return best1_a, best2_a, worst1_a, worst2_a
-    else:
-        return best1_b, best2_b, worst1_b, worst2_b
-
-def sweepB(best, worst, front):
-    """Adjust the rank number of the worst fitnesses according to
-    the best fitnesses on the first two objectives using a sweep
-    procedure.
-    """
-    stairs, fstairs = [], []
-    iter_best = iter(best)
-    next_best = next(iter_best, False)
-    for h in worst:
-        while next_best and h[:2] <= next_best[:2]:
-            insert = True
-            for i, fstair in enumerate(fstairs):
-                if front[fstair] == front[next_best]:
-                    if fstair[1] > next_best[1]:
-                        insert = False
-                    else:
-                        del stairs[i], fstairs[i]
-                    break
-            if insert:
-                idx = bisect.bisect_right(stairs, -next_best[1])
-                stairs.insert(idx, -next_best[1])
-                fstairs.insert(idx, next_best)
-            next_best = next(iter_best, False)
-
-        idx = bisect.bisect_right(stairs, -h[1])
-        if 0 < idx <= len(stairs):
-            fstair = max(fstairs[:idx], key=front.__getitem__)
-            front[h] = max(front[h], front[fstair]+1)
+        return arz, y, p_idx
