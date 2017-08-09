@@ -28,10 +28,10 @@ def main():
          "subsample": choco.uniform(0.7, 1.0)}
 
     sampler = choco.QuasiRandom(conn, s, seed=110, skip=3)
-    for _ in range(50):
-        token, params = sampler.next()
-        loss = score_gbt(X, y, params)
-        sampler.update(token, loss)
+    
+    token, params = sampler.next()
+    loss = score_gbt(X, y, params)
+    sampler.update(token, loss)
 
 if __name__ == "__main__":
     main()
