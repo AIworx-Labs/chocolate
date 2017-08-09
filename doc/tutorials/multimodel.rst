@@ -41,7 +41,7 @@ the loss. Thus, we shall return the negative of the F1 score.::
     def score_svm(X, y, algo, **params):
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-        clf = pickle.loads(algo)(**params)
+        clf = algo(**params)
         clf.fit(X_train, y_train)
         y_pred = clf.predict(X_test)
 
