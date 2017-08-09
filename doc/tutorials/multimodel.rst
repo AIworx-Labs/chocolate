@@ -23,7 +23,7 @@ one for each model. ::
                   "gamma" : choco.log(low=-9, high=3, base=10)},
              {"algo" : SVC, "kernel" : "poly",
                   "C" : choco.log(low=-2, high=10, base=10),
-                  "gamma" : choco.log(low=-9, high=3, base=10)
+                  "gamma" : choco.log(low=-9, high=3, base=10),
                   "degree" : choco.quantized_uniform(low=1, high=5, step=1),
                   "coef0" : choco.uniform(low=-1, high=1)},
              {"algo" : LinearSVC,
