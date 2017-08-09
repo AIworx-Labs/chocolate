@@ -17,17 +17,16 @@ one for each model. ::
 
     from sklearn.svm import SVC, LinearSVC
     import chocolate as choco
-    import pickle
 
-    space = [{"algo" : pickle.dumps(SVC), "kernel" : "rbf",
+    space = [{"algo" : SVC, "kernel" : "rbf",
                   "C" : choco.log(low=-2, high=10, base=10),
                   "gamma" : choco.log(low=-9, high=3, base=10)},
-             {"algo" : pickle.dumps(SVC), "kernel" : "poly",
+             {"algo" : SVC, "kernel" : "poly",
                   "C" : choco.log(low=-2, high=10, base=10),
                   "gamma" : choco.log(low=-9, high=3, base=10),
                   "degree" : choco.quantized_uniform(low=1, high=5, step=1),
                   "coef0" : choco.uniform(low=-1, high=1)},
-             {"algo" : pickle.dumps(LinearSVC),
+             {"algo" : LinearSVC,
                   "C" : choco.log(low=-2, high=10, base=10),
                   "penalty" : choco.choice(["l1", "l2"])}]
 
