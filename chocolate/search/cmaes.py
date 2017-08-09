@@ -236,7 +236,7 @@ class CMAES(SearchAlgorithm):
             candidate["loss"] = None
 
             if candidate["invalid"] == 0:
-                candidate["loss"] = c["_loss"]
+                candidate["loss"] = c.get("_loss", None)
 
             bootstrap.append(candidate)
 
