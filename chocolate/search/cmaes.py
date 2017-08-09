@@ -401,10 +401,62 @@ class CMAES(SearchAlgorithm):
 class MOCMAES(SearchAlgorithm):
     """Multi-Objective Covariance Matrix Adaptation Evolution Strategy.
 
+    A CMA-ES strategy for multi-objective optimization. It combines the
+    the mixed integer modification [Hansen2011]_ and covariance update for constrained
+    optimization [Arnold2012]_. It generates a single new point per
+    iteration and adds a random step mutation to dimensions that undergoes a
+    too small modification. Even if it includes the mixed integer
+    modification, MO-CMA-ES does not handle well dimensions without variance and
+    thus it should be used with care on search spaces with conditional
+    dimensions.
+
+    Args:
+        connection: A database connection object.
+        space: The search space to explore.
+        crossvalidation: A cross-validation object that handles experiment
+            repetition.
+        mu: The number of parents used to generate the candidates. The higher this
+            number is the better the Parato front coverage will be, but the longer
+            it will take to converge.
+        clear_db: If set to :data:`True` and a conflict arise between the
+            provided space and the space in the database, completely clear the
+            database and set the space to the provided one.
+        **params: Additional parameters to pass to the strategy as described in
+            the following table, along with default values.
+
+            +----------------+------------------------------+----------------------------+
+            | Parameter      | Default value                | Details                    |
+            +================+==============================+============================+
+            | ``d``          | ``1 + ndim / 2``             | Damping for step-size.     |
+            +----------------+------------------------------+----------------------------+
+            | ``ptarg``      | ``1 / 3``                    | Taget success rate.        |
+            +----------------+------------------------------+----------------------------+
+            | ``cp``         | ``ptarg / (2 + ptarg)``      | Step size learning rate.   |
+            +----------------+------------------------------+----------------------------+
+            | ``cc``         | ``2 / (ndim + 2)``           | Cumulation time horizon.   |
+            +----------------+------------------------------+----------------------------+
+            | ``ccov``       | ``2 / (ndim**2 + 6)``        | Covariance matrix learning |
+            |                |                              | rate.                      |
+            +----------------+------------------------------+----------------------------+
+            | ``beta``       | ``0.1 / (ndim + 2)``         | Covariance matrix          |
+            |                |                              | constraint learning rate.  |
+            +----------------+------------------------------+----------------------------+
+            | ``pthresh``    | ``0.44``                     | Threshold success rate.    |
+            +----------------+------------------------------+----------------------------+
+            | ``indicator``  | ``mo.hypervolume_indicator`` | Indicator function used    |
+            |                |                              | for ranking candidates     |
+            +----------------+------------------------------+----------------------------+
+
+    .. [Hansen2011] Hansen. A CMA-ES for Mixed-Integer Nonlinear Optimization.
+       Research Report] RR-7751, INRIA. 2011
+
+    .. [Arnold2012] Arnold and Hansen. A (1 + 1)-CMA-ES for Constrained
+        Optimisation. 2012
     """
-    def __init__(self, connection, space, crossvalidation=None, clear_db=False, **params):
+    def __init__(self, connection, space, mu, crossvalidation=None, clear_db=False, **params):
         super(MOCMAES, self).__init__(connection, space, crossvalidation, clear_db)
         self.random_state = numpy.random.RandomState()
+        self.mu = mu
         self.params = params
 
     def _next(self, token=None):
@@ -464,10 +516,6 @@ class MOCMAES(SearchAlgorithm):
     def _init(self):
         self.parents = list()
         self.dim = len(self.space)
-
-        # Selection
-        self.mu = self.params.get("mu", len(self.parents))
-        self.lambda_ = self.params.get("lambda_", 1)
 
         # Step size control
         self.d = self.params.get("d", 1.0 + self.dim / 2.0)
