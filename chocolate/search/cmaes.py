@@ -11,9 +11,8 @@ class CMAES(SearchAlgorithm):
     """Covariance Matrix Adaptation Evolution Strategy minimization method.
 
     A CMA-ES strategy that combines the :math:`(1 + \\lambda)` paradigm
-    [Igel2007]_, the mixed integer modification [Hansen2011]_, active
-    covariance update [Arnold2010]_ and covariance update for constrained
-    optimization [Arnold2012]_. It generates a single new point per
+    [Igel2007]_, the mixed integer modification [Hansen2011]_ and active
+    covariance update [Arnold2010]_. It generates a single new point per
     iteration and adds a random step mutation to dimensions that undergoes a
     too small modification. Even if it includes the mixed integer
     modification, CMA-ES does not handle well dimensions without variance and
@@ -48,11 +47,14 @@ class CMAES(SearchAlgorithm):
             | ``ccovn``      | ``0.4 / (ndim**1.6 + 1)`` | Covariance matrix negative |
             |                |                           | learning rate.             |
             +----------------+---------------------------+----------------------------+
-            | ``beta``       | ``0.1 / (ndim + 2)``      | Covariance matrix          |
-            |                |                           | constraint learning rate.  |
-            +----------------+---------------------------+----------------------------+
             | ``pthresh``    | ``0.44``                  | Threshold success rate.    |
             +----------------+---------------------------+----------------------------+
+
+    .. note::
+
+       To reduce sampling, the constraint to the search space bounding box is enforced
+       by repairing the individuals and adjusting the taken step. This will lead to a
+       slight over sampling of the boundaries when local optimums are close to them.
 
     .. [Igel2007] Igel, Hansen, Roth. Covariance matrix adaptation for
        multi-objective optimization. 2007
@@ -62,9 +64,6 @@ class CMAES(SearchAlgorithm):
 
     .. [Hansen2011] Hansen. A CMA-ES for Mixed-Integer Nonlinear Optimization.
        Research Report] RR-7751, INRIA. 2011
-
-    .. [Arnold2012] Arnold and Hansen. A (1 + 1)-CMA-ES for Constrained
-        Optimisation. 2012
     """
 
     def __init__(self, connection, space, crossvalidation=None, clear_db=False, **params):
@@ -117,7 +116,7 @@ class CMAES(SearchAlgorithm):
             # Transform to dict with parameter names
             # entry = {str(k): v for k, v in zip(self.space.names(), out)}
             entry = self.space(out, transform=False)
-            entry.update(_ancestor_id=-1, _invalid=0, _search_algo="cmaes", **token)
+            entry.update(_ancestor_id=-1, _search_algo="cmaes", **token)
             self.conn.insert_complementary(entry)
 
             # return the true parameter set
@@ -132,32 +131,23 @@ class CMAES(SearchAlgorithm):
                 self._configure()  # Adjust constants that depends on lambda
                 self._update_internals(group)
 
-            invalid = 1
-            while invalid > 0:
-                # Generate a single candidate at a time
-                self.lambda_ = 1
-                self._configure()
+            # Generate a single candidate at a time
+            self.lambda_ = 1
+            self._configure()
 
-                # The ancestor id is the last candidate that participated in the
-                # covariance matrix update
-                ancestor_id = next(
-                    (a["chocolate_id"] for a in reversed(bootstrap + ancestors) if a["loss"] is not None or a[
-                        "invalid"] > 0),
-                    None)
-                assert ancestor_id is not None, "Invalid ancestor id"
+            # The ancestor id is the last candidate that participated in the
+            # covariance matrix update
+            ancestor_id = next((a["chocolate_id"] for a in reversed(bootstrap + ancestors) if a["loss"] is not None), None)
+            assert ancestor_id is not None, "Invalid ancestor id"
 
-                out, y = self._generate()
+            out, y = self._generate()
 
-                # Encode constraint violation
-                invalid = sum(2 ** (2 * i) for i, xi in enumerate(out) if xi < 0)
-                invalid += sum(2 ** (2 * i + 1) for i, xi in enumerate(out) if xi >= 1)
-
-                # Add the step to the complementary table
-                # Transform to dict with parameter names
-                # entry = {str(k): v for k, v in zip(self.space.names(), y)}
-                entry = self.space(y, transform=False)
-                entry.update(_ancestor_id=ancestor_id, _invalid=invalid, _search_algo="cmaes", **token)
-                self.conn.insert_complementary(entry)
+            # Add the step to the complementary table
+            # Transform to dict with parameter names
+            # entry = {str(k): v for k, v in zip(self.space.names(), y)}
+            entry = self.space(y, transform=False)
+            entry.update(_ancestor_id=ancestor_id, _search_algo="cmaes", **token)
+            self.conn.insert_complementary(entry)
 
             # Signify next point to others using loss set to None
             # Transform to dict with parameter names
@@ -184,7 +174,6 @@ class CMAES(SearchAlgorithm):
         self.cc = self.params.get("cc", 2.0 / (self.dim + 2.0))
         self.ccovp = self.params.get("ccovp", 2.0 / (self.dim ** 2 + 6.0))
         self.ccovn = self.params.get("ccovn", 0.4 / (self.dim ** 1.6 + 1.0))
-        self.beta = self.params.get("beta", 0.1 / (self.dim + 2.0))
         self.pthresh = self.params.get("pthresh", 0.44)
 
         # Active covariance update for unsucessful candidates
@@ -207,6 +196,7 @@ class CMAES(SearchAlgorithm):
         self.ptarg = self.params.get("ptarg", 1.0 / (5 + numpy.sqrt(self.lambda_) / 2.0))
         self.cp = self.params.get("cp", self.ptarg * self.lambda_ / (2 + self.ptarg * self.lambda_))
 
+        # TODO: Check validity here, shouldn't self.psucc be initialized in _init?
         if self.update_count == 0:
             self.psucc = self.ptarg
 
@@ -220,12 +210,8 @@ class CMAES(SearchAlgorithm):
             candidate["step"] = numpy.array([c[str(k)] for k in self.space.names()])
             candidate["chocolate_id"] = c["_chocolate_id"]
             candidate["ancestor_id"] = c["_ancestor_id"]
-            candidate["invalid"] = c["_invalid"]
-            candidate["loss"] = None
-
-            if c["_invalid"] == 0:
-                candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
-                candidate["loss"] = results[c["_chocolate_id"]]["_loss"]
+            candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
+            candidate["loss"] = results[c["_chocolate_id"]].get("_loss", None)
 
             ancestors.append(candidate)
             ancestors_ids.add(candidate["chocolate_id"])
@@ -246,24 +232,15 @@ class CMAES(SearchAlgorithm):
             candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
             candidate["chocolate_id"] = c["_chocolate_id"]
             candidate["ancestor_id"] = -1
-            # Compute constraint violation
-            candidate["invalid"] = sum(2 ** (2 * i) for i, xi in enumerate(candidate["X"]) if xi < 0)
-            candidate["invalid"] += sum(2 ** (2 * i + 1) for i, xi in enumerate(candidate["X"]) if xi >= 1)
-            candidate["loss"] = None
-
-            if candidate["invalid"] == 0:
-                candidate["loss"] = c["_loss"]
+            candidate["loss"] = c.get("_loss", None)
 
             bootstrap.append(candidate)
 
         return bootstrap
 
     def _bootstrap(self, candidates):
-        # Active covariance update for invalid individuals
-        self._process_invalids(candidates)
-
-        # Remove invalids and not evaluated
-        candidates = [c for c in candidates if c["invalid"] == 0 and c["loss"] is not None]
+        # Remove not evaluated
+        candidates = [c for c in candidates if c["loss"] is not None]
 
         # Rank-mu update for covariance matrix
         if len(candidates) >= 4:
@@ -279,8 +256,7 @@ class CMAES(SearchAlgorithm):
             cw = numpy.sum(weights * c_array.T, axis=1)
 
             self.pc = (1 - self.cc) * self.pc + numpy.sqrt(1 - (1 - self.cc) ** 2) * numpy.sqrt(mu) * cw
-            self.C = (1 - c1 - cmu) * self.C + c1 * numpy.outer(self.pc, self.pc) + cmu * numpy.dot(weights * c_array.T,
-                                                                                                    c_array)
+            self.C = (1 - c1 - cmu) * self.C + c1 * numpy.outer(self.pc, self.pc) + cmu * numpy.dot(weights * c_array.T, c_array)
 
             self.parent = candidates[0]
 
@@ -289,11 +265,8 @@ class CMAES(SearchAlgorithm):
         assert "loss" in self.parent, "Parent has no loss in CMA-ES internal update"
         assert self.parent["loss"] is not None, "Invalid loss for CMA-ES parent"
 
-        # Active covariance update for invalid individuals
-        self._process_invalids(candidates)
-
-        # Remove invalids and not evaluated
-        candidates = [s for s in candidates if s["invalid"] == 0 and s["loss"] is not None]
+        # Remove not evaluated
+        candidates = [c for c in candidates if c["loss"] is not None]
 
         if len(candidates) == 0:
             # Empty group, abort
@@ -342,27 +315,6 @@ class CMAES(SearchAlgorithm):
         self.i_I_R = numpy.flatnonzero(2 * self.sigma * numpy.diag(self.C) ** 0.5 < self.S_int)
         self.update_count += 1
 
-    def _process_invalids(self, candidates):
-        # Process all invalid individuals
-        for s in candidates:
-            if s["invalid"] > 0:
-                sum_vw = 0
-                invalid_count = 0
-                inv_A = numpy.linalg.inv(self.A)
-
-                _, invalids = bin(s["invalid"]).split("b")
-
-                for j, b in enumerate(reversed(invalids)):
-                    if b == "1":
-                        self.constraints[j, :] = (1 - self.cc) * self.constraints[j, :] + self.cc * s["step"]
-                        w = numpy.dot(inv_A, self.constraints[j, :])
-                        sum_vw += numpy.outer(self.constraints[j, :], w) / numpy.inner(w, w)
-                        invalid_count += 1
-
-                # Update A and make changes in C since in next updates we use C
-                self.A = self.A - (self.beta / invalid_count) * sum_vw
-                self.C = numpy.dot(self.A, self.A.T)
-
     def _generate(self):
         n_I_R = self.i_I_R.shape[0]
         R_int = numpy.zeros(self.dim)
@@ -395,15 +347,18 @@ class CMAES(SearchAlgorithm):
         y = numpy.dot(self.random_state.standard_normal(self.dim), self.A.T)
         arz = self.parent["X"] + self.sigma * y + self.S_int * R_int
 
-        return arz, y
+        # Repair candidates outside [0, 1)
+        arz_corr = numpy.clip(arz, 0, 1 - 1e-16)
+        y_corr = ((arz_corr - arz) / self.sigma) + y
+        return arz_corr, y_corr
 
 
 class MOCMAES(SearchAlgorithm):
     """Multi-Objective Covariance Matrix Adaptation Evolution Strategy.
 
-    A CMA-ES strategy for multi-objective optimization. It combines the
-    the mixed integer modification [Hansen2011]_ and covariance update for constrained
-    optimization [Arnold2012]_. It generates a single new point per
+    A CMA-ES strategy for multi-objective optimization. It combines the improved
+    step size adaptation [Voss2010] and
+    the mixed integer modification [Hansen2011]. It generates a single new point per
     iteration and adds a random step mutation to dimensions that undergoes a
     too small modification. Even if it includes the mixed integer
     modification, MO-CMA-ES does not handle well dimensions without variance and
@@ -438,20 +393,24 @@ class MOCMAES(SearchAlgorithm):
             | ``ccov``       | ``2 / (ndim**2 + 6)``        | Covariance matrix learning |
             |                |                              | rate.                      |
             +----------------+------------------------------+----------------------------+
-            | ``beta``       | ``0.1 / (ndim + 2)``         | Covariance matrix          |
-            |                |                              | constraint learning rate.  |
-            +----------------+------------------------------+----------------------------+
             | ``pthresh``    | ``0.44``                     | Threshold success rate.    |
             +----------------+------------------------------+----------------------------+
             | ``indicator``  | ``mo.hypervolume_indicator`` | Indicator function used    |
             |                |                              | for ranking candidates     |
             +----------------+------------------------------+----------------------------+
 
-    .. [Hansen2011] Hansen. A CMA-ES for Mixed-Integer Nonlinear Optimization.
-       Research Report] RR-7751, INRIA. 2011
+    .. note::
 
-    .. [Arnold2012] Arnold and Hansen. A (1 + 1)-CMA-ES for Constrained
-        Optimisation. 2012
+       To reduce sampling, the constraint to the search space bounding box is enforced
+       by repairing the individuals and adjusting the taken step. This will lead to a
+       slight over sampling of the boundaries when local optimums are close to them.
+
+    .. [Voss2010] Voss, Hansen, Igel. Improved Step Size Adaptation for the MO-CMA-ES.
+       In proc. GECCO'10, 2010.
+
+    .. [Hansen2011] Hansen. A CMA-ES for Mixed-Integer Nonlinear Optimization.
+       [Research Report] RR-7751, INRIA. 2011
+
     """
     def __init__(self, connection, space, mu, crossvalidation=None, clear_db=False, **params):
         super(MOCMAES, self).__init__(connection, space, crossvalidation, clear_db)
@@ -474,8 +433,12 @@ class MOCMAES(SearchAlgorithm):
         ancestors, ancestors_ids = self._load_ancestors(results)
         bootstrap = self._load_bootstrap(results, ancestors_ids)
 
+        # print("Bootstrap", bootstrap, len(bootstrap))
+        # print("Ancestors", ancestors, len(ancestors))
+
         # Select mu parents from the individuals created by another algorithm
         self.parents = [bootstrap[i] for i in self._select(bootstrap)]
+        print(self.parents)
 
         # Generate the next point
         token = token or {}
@@ -492,18 +455,12 @@ class MOCMAES(SearchAlgorithm):
             for c in ancestors:
                 self._update_internals(c)
 
-            invalid = 1
-            while invalid > 0:
-                out, y, p_idx = self._generate()
+            out, y, p_idx = self._generate()
 
-                # Encode constraint violation
-                invalid = sum(2 ** (2 * i) for i, xi in enumerate(out) if xi < 0)
-                invalid += sum(2 ** (2 * i + 1) for i, xi in enumerate(out) if xi >= 1)
-
-                # Add the step to the complementary table
-                entry = {str(k): v for k, v in zip(self.space.names(), y)}
-                entry.update(_parent_idx=p_idx, _invalid=invalid, **token)
-                self.conn.insert_complementary(entry)
+            # Add the step to the complementary table
+            entry = {str(k): v for k, v in zip(self.space.names(), y)}
+            entry.update(_parent_idx=p_idx, **token)
+            self.conn.insert_complementary(entry)
 
         # Transform to dict with parameter names
         entry = {str(k): v for k, v in zip(self.space.names(), out)}
@@ -525,11 +482,10 @@ class MOCMAES(SearchAlgorithm):
         # Covariance matrix adaptation
         self.cc = self.params.get("cc", 2.0 / (self.dim + 2.0))
         self.ccov = self.params.get("ccov", 2.0 / (self.dim ** 2 + 6.0))
-        self.beta = self.params.get("beta", 0.1 / (self.dim + 2.0))
         self.pthresh = self.params.get("pthresh", 0.44)
 
         # Internal parameters associated to the mu parent
-        self.sigmas = [sigma] * self.mu
+        self.sigmas = [0.2] * self.mu
         self.C = [numpy.identity(self.dim) for _ in range(self.mu)]
         self.A = [numpy.linalg.cholesky(self.C[i]) for i in range(self.mu)]
         self.pc = [numpy.zeros(self.dim) for _ in range(self.mu)]
@@ -547,7 +503,7 @@ class MOCMAES(SearchAlgorithm):
                 self.S_int[i] = s
 
         # Integer mutation parameters
-        im = numpy.flatnonzero(2 * self.sigma * numpy.diag(self.C[0]) ** 0.5 < self.S_int)
+        im = numpy.flatnonzero(2 * self.sigmas[0] * numpy.diag(self.C[0]) ** 0.5 < self.S_int)
         self.i_I_R = [im.copy() for i in range(self.mu)]
 
     def _load_ancestors(self, results):
@@ -560,14 +516,12 @@ class MOCMAES(SearchAlgorithm):
             candidate["step"] = numpy.array([c[str(k)] for k in self.space.names()])
             candidate["chocolate_id"] = c["_chocolate_id"]
             candidate["parent_idx"] = c["_parent_idx"]
-            candidate["invalid"] = c["_invalid"]
             candidate["loss"] = None
 
-            if c["_invalid"] == 0:
-                candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
-                losses = list(v for k, v in sorted(results[c["_chocolate_id"]].items()) if k.startswith("_loss"))
-                if len(losses) > 0:
-                    candidate["loss"] = losses
+            candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
+            losses = list(v for k, v in sorted(results[c["_chocolate_id"]].items()) if k.startswith("_loss"))
+            if len(losses) > 0 and all(l is not None for l in losses):
+                candidate["loss"] = losses
 
             ancestors.append(candidate)
             ancestors_ids.add(candidate["chocolate_id"])
@@ -588,15 +542,11 @@ class MOCMAES(SearchAlgorithm):
             candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
             candidate["chocolate_id"] = c["_chocolate_id"]
             candidate["ancestor_id"] = -1
-            # Compute constraint violation
-            candidate["invalid"] = sum(2 ** (2 * i) for i, xi in enumerate(candidate["X"]) if xi < 0)
-            candidate["invalid"] += sum(2 ** (2 * i + 1) for i, xi in enumerate(candidate["X"]) if xi >= 1)
             candidate["loss"] = None
 
-            if candidate["invalid"] == 0:
-                losses = list(v for k, v in sorted(results[c["_chocolate_id"]].items()) if k.startswith("_loss"))
-                if len(losses) > 0:
-                    candidate["loss"] = losses
+            losses = list(v for k, v in sorted(results[c["_chocolate_id"]].items()) if k.startswith("_loss"))
+            if len(losses) > 0 and all(l is not None for l in losses):
+                candidate["loss"] = losses
 
             bootstrap.append(candidate)
 
@@ -604,10 +554,12 @@ class MOCMAES(SearchAlgorithm):
 
     def _select(self, candidates):
         """Returns the indices of the selected individuals"""
-        if len(candidates) <= self.mu:
-            return candidates, []
+        valid_candidates = [(i, c) for i, c in enumerate(candidates) if c["loss"] is not None]
+        if len(valid_candidates) <= self.mu:
+            return [i for i, c in valid_candidates]
 
-        pareto_fronts = argsortNondominated(candidates, len(candidates))
+        losses = [c["loss"] for i, c in valid_candidates]
+        pareto_fronts = argsortNondominated(losses, len(losses))
 
         chosen = list()
         mid_front = None
@@ -631,16 +583,16 @@ class MOCMAES(SearchAlgorithm):
             # reference point is chosen in the complete population
             # as the worst in each dimension +1
             # It is mostly arbitrary
-            ref = numpy.array([c["loss"] for c in candidates])
+            ref = numpy.array([c["loss"] for i, c in valid_candidates])
             ref = numpy.max(ref, axis=0) + 1
 
             for _ in range(len(mid_front) - k):
-                idx = self.indicator(mid_front, ref=ref)
+                idx = self.indicator([candidates[i] for i in mid_front], ref=ref)
                 mid_front.pop(idx)
 
             chosen += mid_front
 
-        return chosen
+        return [valid_candidates[i][0] for i in chosen]
 
     # def _rankOneUpdate(self, invCholesky, A, alpha, beta, v):
     #     w = numpy.dot(invCholesky, v)
@@ -663,31 +615,30 @@ class MOCMAES(SearchAlgorithm):
         assert all("loss" in p for p in self.parents), "One parent has no loss in MO-CMA-ES internal update"
         assert all(p["loss"] is not None for p in self.parents), "Loss is None for a parent in MO-CMA-ES"
 
-        if candidate["invalid"] > 0:
-            self._update_invalid(candidate)
-            return
-
-        p_idx = andidate["_parent_idx"]
+        p_idx = candidate["parent_idx"]
         chosen = self._select(self.parents + [candidate])
         candidate_is_chosen = self.mu in chosen
 
         # Only psucc and sigma of parent are update
-        self.psucc[p_idx] = (1.0 - self.cp) * self.psucc[p_idx] + self.cp * candidate_is_chosen
-        self.sigmas[p_idx] = self.sigmas[p_idx] * exp((self.psucc[p_idx] - self.ptarg) / (self.d * (1.0 - self.ptarg)))
+        last_steps = list(self.sigmas)
+        self.psucc[p_idx] = (1 - self.cp) * self.psucc[p_idx] + self.cp * candidate_is_chosen
+        self.sigmas[p_idx] = self.sigmas[p_idx] * numpy.exp((self.psucc[p_idx] - self.ptarg) / (self.d * (1.0 - self.ptarg)))
 
         if candidate_is_chosen:
             if self.psucc[p_idx] < self.pthresh:
-                pc = (1 - self.cc) * self.pc[p_idx] + numpy.sqrt(self.cc * (2 - self.cc)) * candidate["step"] / last_step[p_idx]
+                pc = (1 - self.cc) * self.pc[p_idx] + numpy.sqrt(self.cc * (2 - self.cc)) * candidate["step"] / last_steps[p_idx]
                 C = (1 - self.ccov) * self.C[p_idx] + self.ccov * numpy.outer(pc, pc)
                 # invCholesky, A = self._rankOneUpdate(self.invCholesky[p_idx], self.A[p_idx], 1 - self.ccov, self.ccov, pc)
             else:
-                pc = (1.0 - cc) * self.pc[p_idx]
+                pc = (1 - self.cc) * self.pc[p_idx]
                 C = (1 - self.ccov) * self.C[p_idx] + self.ccov * (numpy.outer(pc, pc) + self.cc * (2 - self.cc) * self.C[p_idx])
                 #pc_weight = self.cc * (2.0 - self.cc)
                 #invCholesky, A = self._rankOneUpdate(self.invCholesky[p_idx], self.A[p_idx], 1 - self.cconv + pc_weight, self.cconv, pc)
 
             # Replace the unselected parent parameters by those of the candidate
             not_chosen = set(range(self.mu + 1)) - set(chosen)
+            assert len(not_chosen) == 1, "Invalid selection occured in MO-CMA-ES"
+            not_chosen = list(not_chosen)[0]
             self.parents[not_chosen] = candidate
             self.psucc[not_chosen] = self.psucc[p_idx]
             self.sigmas[not_chosen] = self.sigmas[p_idx]
@@ -699,29 +650,10 @@ class MOCMAES(SearchAlgorithm):
         # Update the dimensions where integer mutation is needed
         self.i_I_R[p_idx] = numpy.flatnonzero(2 * self.sigmas[p_idx] * numpy.diag(self.C[p_idx]) ** 0.5 < self.S_int)
 
-    def _update_invalid(self, candidate):
-        # Process all invalid individuals
-        p_idx = candidate["_parent_idx"]
-        sum_vw = 0
-        invalid_count = 0
-        inv_A = numpy.linalg.inv(self.A[p_idx])
-
-        _, invalids = bin(candidate["invalid"]).split("b")
-
-        for j, b in enumerate(reversed(invalids)):
-            if b == "1":
-                self.constraints[p_idx][j, :] = (1 - self.cc) * self.constraints[p_idx][j, :] + self.cc * candidate["step"]
-                w = numpy.dot(inv_A, self.constraints[p_idx][j, :])
-                sum_vw += numpy.outer(self.constraints[p_idx][j, :], w) / numpy.inner(w, w)
-                invalid_count += 1
-
-        # Update A and make changes in C since in other updates we use C
-        self.A[p_idx] = self.A[p_idx] - (self.beta / invalid_count) * sum_vw
-        self.C[p_idx] = numpy.dot(self.A[p_idx], self.A[p_idx].T)
-
     def _generate(self):
         # Select the parent at random from the non dominated set of parents
-        ndom = argsortLogNondominated(self.parents, len(self.parents), first_front_only=True)
+        losses = [c["loss"] for c in self.parents]
+        ndom = argsortNondominated(losses, len(losses), first_front_only=True)
         idx = numpy.random.randint(0, len(ndom))
         # ndom contains the indices of the parents
         p_idx = ndom[idx]
@@ -755,6 +687,10 @@ class MOCMAES(SearchAlgorithm):
             R_int = I_pm1 * (Rp + Rpp)
 
         y = numpy.dot(self.random_state.standard_normal(self.dim), self.A[p_idx].T)
-        arz = self.parents[p_idx]["X"] + self.sigma[p_idx] * y + self.S_int * R_int
+        arz = self.parents[p_idx]["X"] + self.sigmas[p_idx] * y + self.S_int * R_int
 
-        return arz, y, p_idx
+        # Repair candidates outside [0, 1)
+        arz_corr = numpy.clip(arz, 0, 1 - 1e-16)
+        y_corr = ((arz_corr - arz) / self.sigmas[p_idx]) + y
+
+        return arz_corr, y_corr , p_idx

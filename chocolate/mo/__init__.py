@@ -4,21 +4,21 @@ import numpy
 
 try:
     # try importing the C version
-    from . import hv as hv
+    from . import _hv as hv
 except ImportError:
     # fallback on python version
-    from . import pyhv as hv
+    from . import _pyhv as hv
 
 
-def argsortNondominated(candidates, k, first_front_only=False):
-    """Sort the first *k* *candidates* into different nondomination levels
+def argsortNondominated(losses, k, first_front_only=False):
+    """Sort the first *k* *losses* into different nondomination levels
     using the "Fast Nondominated Sorting Approach" proposed by Deb et al.,
     see [Deb2002]_. This algorithm has a time complexity of :math:`O(MN^2)`,
     where :math:`M` is the number of objectives and :math:`N` the number of
-    candidates.
+    losses.
 
-    :param candidates: A list of candidates to select from.
-    :param k: The number of candidates to select.
+    :param losses: A list of losses to select from.
+    :param k: The number of elements to select.
     :param first_front_only: If :obj:`True` sort only the first front and
                              exit.
     :returns: A list of Pareto fronts (lists) containing the individuals
@@ -32,9 +32,9 @@ def argsortNondominated(candidates, k, first_front_only=False):
         return []
 
     loss2c = defaultdict(list)
-    for i, c in enumerate(candidates):
-        loss2c[c["loss"]].append(i)
-    losses = loss2c.keys()
+    for i, c in enumerate(losses):
+        loss2c[tuple(c)].append(i)
+    losses_keys = list(loss2c.keys())
 
     current_front = []
     next_front = []
@@ -42,8 +42,8 @@ def argsortNondominated(candidates, k, first_front_only=False):
     dominated_losses = defaultdict(list)
 
     # Rank first Pareto front
-    for i, li in enumerate(losses):
-        for lj in losses[i+1:]:
+    for i, li in enumerate(losses_keys):
+        for lj in losses_keys[i+1:]:
             if dominates(li, lj):
                 dominating_losses[lj] += 1
                 dominated_losses[li].append(lj)
@@ -63,7 +63,7 @@ def argsortNondominated(candidates, k, first_front_only=False):
 
     # Rank the next front until at least the requested number
     # candidates are sorted
-    N = min(len(candidates), k)
+    N = min(len(losses), k)
     while pareto_sorted < N:
         fronts.append([])
         for lp in current_front:
