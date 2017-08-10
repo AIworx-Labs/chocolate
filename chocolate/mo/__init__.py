@@ -4,10 +4,10 @@ import numpy
 
 try:
     # try importing the C version
-    from . import _hv as hv
+    from . import hv_ as hv
 except ImportError:
     # fallback on python version
-    from . import _pyhv as hv
+    from . import pyhv as hv
 
 
 def argsortNondominated(losses, k, first_front_only=False):

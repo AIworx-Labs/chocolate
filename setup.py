@@ -38,7 +38,7 @@ def run_setup(build_ext):
     if build_ext:
         extra_modules = list()
 
-        hv_module = Extension("chocolate.mo._hv", sources=["chocolate/mo/_hv.c", "chocolate/mo/hv.cpp"])
+        hv_module = Extension("chocolate.mo.hv_", sources=["chocolate/mo/_hv.c", "chocolate/mo/hv.cpp"])
         extra_modules.append(hv_module)
 
     setup(

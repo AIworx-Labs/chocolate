@@ -51,6 +51,7 @@ Library Reference
 
    Bayes
    CMAES
+   MOCMAES
 
 .. rubric:: :doc:`conditional`
 

@@ -13,7 +13,7 @@ import numpy
 __all__ = ["hypervolume"]
 
 warnings.simplefilter("once", ImportWarning)
-warnings.warn("Using Python version of hypervolume module. Expect this to be very slow.", ImportWarning)
+warnings.warn("Using Python version of hypervolume module. Expect this to be slower.", ImportWarning)
 
 def hypervolume(pointset, ref):
     """Compute the absolute hypervolume of a *pointset* according to the

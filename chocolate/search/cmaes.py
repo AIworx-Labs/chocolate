@@ -348,7 +348,7 @@ class CMAES(SearchAlgorithm):
         arz = self.parent["X"] + self.sigma * y + self.S_int * R_int
 
         # Repair candidates outside [0, 1)
-        arz_corr = numpy.clip(arz, 0, 1 - 1e-16)
+        arz_corr = numpy.clip(arz, 0, 1 - 1e-8)
         y_corr = ((arz_corr - arz) / self.sigma) + y
         return arz_corr, y_corr
 
@@ -433,12 +433,8 @@ class MOCMAES(SearchAlgorithm):
         ancestors, ancestors_ids = self._load_ancestors(results)
         bootstrap = self._load_bootstrap(results, ancestors_ids)
 
-        # print("Bootstrap", bootstrap, len(bootstrap))
-        # print("Ancestors", ancestors, len(ancestors))
-
         # Select mu parents from the individuals created by another algorithm
         self.parents = [bootstrap[i] for i in self._select(bootstrap)]
-        print(self.parents)
 
         # Generate the next point
         token = token or {}
@@ -654,7 +650,7 @@ class MOCMAES(SearchAlgorithm):
         # Select the parent at random from the non dominated set of parents
         losses = [c["loss"] for c in self.parents]
         ndom = argsortNondominated(losses, len(losses), first_front_only=True)
-        idx = numpy.random.randint(0, len(ndom))
+        idx = self.random_state.randint(0, len(ndom))
         # ndom contains the indices of the parents
         p_idx = ndom[idx]
 
@@ -690,7 +686,7 @@ class MOCMAES(SearchAlgorithm):
         arz = self.parents[p_idx]["X"] + self.sigmas[p_idx] * y + self.S_int * R_int
 
         # Repair candidates outside [0, 1)
-        arz_corr = numpy.clip(arz, 0, 1 - 1e-16)
+        arz_corr = numpy.clip(arz, 0, 1 - 1e-8)
         y_corr = ((arz_corr - arz) / self.sigmas[p_idx]) + y
 
         return arz_corr, y_corr , p_idx

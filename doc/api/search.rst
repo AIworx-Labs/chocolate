@@ -16,3 +16,9 @@ Search Algorithms
    .. automethod:: next
 
    .. automethod:: update
+
+.. autoclass:: MOCMAES
+
+   .. automethod:: next
+
+   .. automethod:: update
