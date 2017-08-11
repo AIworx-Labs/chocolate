@@ -282,6 +282,7 @@ class TestCMAES(unittest.TestCase):
             entry = self.mock_conn.insert_result.call_args[0][0]
             entry["_loss"] = numpy.random.randn()
             db.append(entry)
+            self.mock_conn.count_results.return_value = len(db)
             self.mock_conn.insert_result.reset_mock()
             
             if self.mock_conn.insert_complementary.call_count > 0:
@@ -558,11 +559,10 @@ class TestMOCMAES(unittest.TestCase):
             entry["_loss_0"] = numpy.random.randn()
             entry["_loss_1"] = numpy.random.randn()
             db.append(entry)
+            self.mock_conn.count_results.return_value = len(db)
             self.mock_conn.insert_result.reset_mock()
             
             if self.mock_conn.insert_complementary.call_count > 0:
                 c = self.mock_conn.insert_complementary.call_args[0][0]
                 comp.append(c)
                 self.mock_conn.insert_complementary.reset_mock()
-
-            self.mock_conn.count_results.return_value = len(db)
