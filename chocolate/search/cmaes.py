@@ -357,8 +357,8 @@ class MOCMAES(SearchAlgorithm):
     """Multi-Objective Covariance Matrix Adaptation Evolution Strategy.
 
     A CMA-ES strategy for multi-objective optimization. It combines the improved
-    step size adaptation [Voss2010] and
-    the mixed integer modification [Hansen2011]. It generates a single new point per
+    step size adaptation [Voss2010]_ and
+    the mixed integer modification [Hansen2011]_. It generates a single new point per
     iteration and adds a random step mutation to dimensions that undergoes a
     too small modification. Even if it includes the mixed integer
     modification, MO-CMA-ES does not handle well dimensions without variance and
