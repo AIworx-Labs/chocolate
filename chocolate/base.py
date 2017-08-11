@@ -2,7 +2,7 @@ from collections import Mapping
 
 import pandas
 
-from .space import Space 
+from .space import Space
 
 
 class Connection(object):
@@ -62,10 +62,7 @@ class Connection(object):
         all_results = []
         for r in results:
             result = s([r[k] for k in s.names()])
-            if "_loss" in r:
-                result['loss'] = r['_loss']
-            else:
-                result['loss'] = None
+            result['loss'] = r.get("_loss", None)
             result["id"] = r["_chocolate_id"]
             all_results.append(result)
 
@@ -86,11 +83,11 @@ class SearchAlgorithm(object):
         self.conn = connection
         with self.conn.lock():
             db_space = self.conn.get_space()
-            
+
             if space is None and db_space is None:
                 raise RuntimeError("The database does not contain any space, please provide one through"
                     "the 'space' argument")
-            
+
             elif space is not None and db_space is not None:
                 if space != db_space and clear_db is False:
                     raise RuntimeError("The provided space and database space are different. To overwrite "
@@ -101,7 +98,7 @@ class SearchAlgorithm(object):
 
             elif space is not None and db_space is None:
                 self.conn.insert_space(space)
-            
+
             elif space is None and db_space is not None:
                 space = db_space
 
@@ -130,7 +127,7 @@ class SearchAlgorithm(object):
     def next(self):
         """Retrieve the next point to evaluate based on available data in the
         database.
-        
+
         Returns:
             A tuple containing a unique token and a fully qualified parameter set.
         """

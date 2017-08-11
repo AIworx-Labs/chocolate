@@ -69,16 +69,16 @@ class Random(SearchAlgorithm):
             l = len(self.subspace_grids)
             if i >= l:
                 raise StopIteration
-            
+
             # Restore state
             self.random_state.rand(i - self.rndrawn)
-            
+
             drawn = [doc["_chocolate_id"] for doc in self.conn.all_results()]
-            
+
             choices = sorted(set(range(l)) - set(drawn))
             sample = self.random_state.choice(choices)
             self.rndrawn += i - self.rndrawn + 1
-            
+
             # Some dbs don't like numpy.int64
             token.update({"_chocolate_id": int(sample)})
             out = self.subspace_grids[sample]
@@ -93,9 +93,7 @@ class Random(SearchAlgorithm):
             out = self.random_state.rand(len(self.space))
             self.rndrawn += i - self.rndrawn + 1
 
-        # entry = {k : v for k, v in zip(self.space.names(), out)}
-        entry = self.space(out, transform=False)
-        # entry["_loss"] = None
+        entry = {k : v for k, v in zip(self.space.names(), out)}
         entry.update(token)
         self.conn.insert_result(entry)
 
