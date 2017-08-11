@@ -63,6 +63,7 @@ class Connection(object):
         all_results = []
         for r in results:
             result = s([r[k] for k in s.names()])
+
             # Find all losses
             losses = {k: v for k, v in r.items() if k.startswith("_loss")}
             if all(l is not None for l in losses.values()):

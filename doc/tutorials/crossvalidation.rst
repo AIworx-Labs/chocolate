@@ -17,7 +17,7 @@ cross-validation object and assign it to the search algorithm. ::
 
     if __name__ == "__main__":
         space = {"p1": choco.uniform(0, 10), "p2": choco.uniform(0, 5)}
-        connection = choco.DataFrameConnection()
+        connection = choco.SQLiteConnection(url="sqlite:///cv.db")
         cv = Repeat(repetitions=3, reduce=np.mean, rep_col="_repetition_id")
         s = choco.Grid(space, connection, crossvalidation=cv)
 
@@ -44,8 +44,8 @@ The preceding script, if run a couple of times, will output the following tokens
 
 The cross-validation object wraps the connection to reduce the loss of experiments with same
 ``"_chocolate_id"``. Thus, algorithms never see the repetitions, they only receive a single
-parameter set with the reduced loss. For the database of the last experiment, the algorithms
-when interrogating the database will see the following parameter set and loss ::
+parameter set with the reduced loss. For the last example, the algorithms,
+when interrogating the database, will see the following parameter sets and losses ::
 
     {'p1': 8.1935000833291518, 'p2': 4.2668676560356529} 12.023584465601298
     {'p1': 7.4031022047092732, 'p2': 0.14633280691567885} 6.5046270111817819

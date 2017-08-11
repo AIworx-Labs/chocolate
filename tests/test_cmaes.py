@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 from hypothesis import given
 from hypothesis.strategies import floats
+import numpy
 
 from chocolate import CMAES, MOCMAES
 from chocolate.space import Space, uniform
@@ -257,6 +258,34 @@ class TestCMAES(unittest.TestCase):
         self.assertEqual(comp[0][0]["_chocolate_id"], 3)
         self.assertIn("_ancestor_id", comp[0][0])
         self.assertEqual(comp[0][0]["_ancestor_id"], 2)
+
+    def test_conditional_2_steps(self):
+        s = [{"a": uniform(1, 10), "b": uniform(5, 15), "C": 0},
+             {"c": uniform(2, 3), "C": 1}]
+
+        db = list()
+        comp = list()
+
+        self.mock_conn = MagicMock(name="connection")
+        self.mock_conn.get_space.return_value = Space(s)
+        self.mock_conn.all_results.return_value = db
+        self.mock_conn.count_results.return_value = len(db)
+        self.mock_conn.all_complementary.return_value = comp
+
+        self.search = CMAES(self.mock_conn, s)
+        for i in range(25):
+            token, p = self.search.next()
+
+            self.assertIn("_chocolate_id", token)
+            self.assertEqual(token["_chocolate_id"], i)
+
+            entry = self.mock_conn.insert_result.call_args[0][0]
+            entry["_loss"] = numpy.random.randn()
+            c = self.mock_conn.insert_complementary.call_args[0][0]
+
+            db.append(entry)
+            comp.append(c)
+            self.mock_conn.count_results.return_value = len(db)
 
 
 class TestMOCMAES(unittest.TestCase):

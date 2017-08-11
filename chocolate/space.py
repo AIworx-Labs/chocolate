@@ -101,9 +101,9 @@ class uniform(ContinuousDistribution):
     def __call__(self, x):
         """Transforms *x* a uniform number taken from the half-open continuous
         interval :math:`[0, 1)` to the represented distribution.
-        
+
         Returns:
-            The corresponding number in the half-open interval 
+            The corresponding number in the half-open interval
             :math:`[\\text{low}, \\text{high})`.
         """
         return x * (self.high - self.low) + self.low
@@ -114,7 +114,7 @@ class uniform(ContinuousDistribution):
     def __eq__(self, other):
         return self.low == other.low and self.high == other.high
 
-    
+
 class quantized_uniform(QuantizedDistribution):
     """Uniform discrete distribution.
 
@@ -143,7 +143,7 @@ class quantized_uniform(QuantizedDistribution):
     def __call__(self, x):
         """Transforms *x*, a uniform number taken from the half-open continuous
         interval :math:`[0, 1)`, to the represented distribution.
-        
+
         Returns:
             The corresponding number in the discrete half-open interval
             :math:`[\\text{low}, \\text{high})` alligned on step size. If the
@@ -185,7 +185,7 @@ class quantized_uniform(QuantizedDistribution):
     def __eq__(self, other):
         return self.low == other.low and self.high == other.high and self.step == other.step
 
-    
+
 class log(uniform):
     """Logarithmic uniform continuous distribution.
 
@@ -215,7 +215,7 @@ class log(uniform):
     def __eq__(self, other):
         return self.low == other.low and self.high == other.high and self.base == other.base
 
-    
+
 class quantized_log(quantized_uniform):
     """Logarithmic uniform discrete distribution.
 
@@ -231,7 +231,7 @@ class quantized_log(quantized_uniform):
             lower than :math:`\\text{base}^\\text{high}`.
         step: The spacing between each discrete sample exponent.
         base: Base of the logarithmic function.
-    """   
+    """
     def __init__(self, low, high, step, base):
         super(quantized_log, self).__init__(low, high, step)
         assert base > 0, "Base must be larger than 0"
@@ -241,7 +241,7 @@ class quantized_log(quantized_uniform):
     def __call__(self, x):
         """Transforms *x*, a uniform number taken from the half-open
         continuous interval :math:`[0, 1)`, to the represented distribution.
-        
+
         Returns:
             The corresponding number in the discrete half-open interval
             :math:`[\\text{base}^\\text{low}, \\text{base}^\\text{high})`
@@ -270,7 +270,7 @@ class choice(quantized_uniform):
         assert len(values) > 0, "Choices must at least have one value"
         self.values = list(values)
         super(choice, self).__init__(low=0, high=len(self.values), step=1)
-    
+
     def __call__(self, x):
         """Transforms *x*, a uniform number taken from the half-open
         continuous interval :math:`[0, 1)`, to the represented distribution.
@@ -300,7 +300,7 @@ class Space(object):
         spaces: A dictionary or list of dictionaries of parameter names to
             their distribution. When a list of multiple dictionaries is
             provided, the structuring elements of these items must define a
-            set of unique choices. Structuring elements are defined using 
+            set of unique choices. Structuring elements are defined using
             non-distribution values. See examples below.
 
     Raises:
@@ -324,16 +324,16 @@ class Space(object):
 
             In [3]: s([0.1, 0.7])
             Out[3]: {'learning_rate': 0.01045, 'n_estimators': 8}
- 
+
         A one level conditional multidimentional search space is defined using
         a list of dictionaries. Here the choices are a SMV with linear kernel
         and a K-nearest neighbor as defined by the string values. Note the use
         of class names in the space definition. ::
 
             In [2]: from sklearn.svm import SVC
-            
+
             In [3]: from sklearn.neighbors import KNeighborsClassifier
-            
+
             In [4]: s = Space([{"algo": SVC, "kernel": "linear",
                                     "C": log(low=-3, high=5, base=10)},
                                {"algo": KNeighborsClassifier,
@@ -350,7 +350,7 @@ class Space(object):
         search space. ::
 
             In [6]: s([0.1, 0.2, 0.3])
-            Out[6]: 
+            Out[6]:
             {'C': 0.039810717055349734,
              'algo': sklearn.svm.classes.SVC,
              'kernel': 'linear'}
@@ -364,7 +364,7 @@ class Space(object):
         example, the SVM from last example can have different kernels. The
         next search space will share the ``C`` parameter amongst all SVMs, but
         will branch on the kernel type with their individual parameters. ::
-            
+
             In [2]: s = Space([{"algo": "svm",
                                 "C": log(low=-3, high=5, base=10),
                                 "kernel": {"linear": None,
@@ -442,7 +442,7 @@ class Space(object):
 
         return ndims
 
-    def __call__(self, x, transform=True):
+    def __call__(self, x):
         out = dict()
         assert len(self) == len(x), "Space and vector dimensions missmatch {} != {}".format(len(self), len(x))
         iter_x = iter(x)
@@ -462,12 +462,9 @@ class Space(object):
 
                 if len(self.spaces) == 1 or subspace_key == key:
                     if isinstance(v, Distribution):
-                        if transform:
-                            out[k] = v(xi)
-                        else:
-                            out[k] = xi
+                        out[k] = v(xi)
                     elif isinstance(v, Space):
-                        out.update(**v(xi, transform))
+                        out.update(**v(xi))
                     else:
                         raise TypeError("Oops something went wrong!")
 
@@ -498,7 +495,7 @@ class Space(object):
                                    {"algo": "knn",
                                         "n_neighbors": quantized_uniform(low=1, high=20, step=1)}])
                 In [3]: s.names()
-                Out[3]: 
+                Out[3]:
                 ['_subspace',
                  'algo_svm_C',
                  'algo_svm_kernel__subspace',
@@ -553,7 +550,7 @@ class Space(object):
                         out.extend([False] * len(xi))
                     else:
                         raise TypeError("Unexpected type {} in space".format(type(v)))
-                    
+
         return out
 
     def names(self, unique=True):
@@ -601,7 +598,7 @@ class Space(object):
                                     "C": log(low=-3, high=5, base=10),
                                     "kernel": {"linear": None,
                                                 "rbf": {"gamma": log(low=-2, high=3, base=10)}}},
-                                   
+
                                    {"algo": KNeighborsClassifier,
                                         "n_neighbors": quantized_uniform(low=1, high=20, step=1)}])
 
@@ -636,7 +633,7 @@ class Space(object):
                             names.append(n)
                 else:
                     raise TypeError("Unexpected type {} inspace".format(type(v)))
-        
+
         return names
 
     def steps(self):
@@ -691,7 +688,7 @@ class Space(object):
                                         "n_neighbors": quantized_uniform(low=1, high=20, step=1)}])
 
                 In [3]: s.names()
-                Out[3]: 
+                Out[3]:
                 ['_subspace',
                  'algo_svm_C',
                  'algo_svm_kernel__subspace',
@@ -699,7 +696,7 @@ class Space(object):
                  'algo_knn_n_neighbors']
 
                 In [4]: s.subspaces()
-                Out[4]: 
+                Out[4]:
                 [[0.0, log(low=-3, high=5, base=10), 0.0, None, None],
                  [0.0, log(low=-3, high=5, base=10), 0.5, log(low=-2, high=3, base=10), None],
                  [0.5, None, None, None, quantized_uniform(low=1, high=20, step=1)]]
@@ -714,11 +711,11 @@ class Space(object):
             position = 1
         else:
             position = 0
-        
+
         for i, (key, subspace) in enumerate(self.spaces.items()):
             branch = [None] * len(self)
             idx = list()
-            
+
             if len(self.spaces) > 1:
                 step = self.subspace_choice.step / (self.subspace_choice.high - self.subspace_choice.low)
                 branch[0] = i * step
@@ -731,14 +728,14 @@ class Space(object):
                     branch[position] = v
                     idx.append(position)
                     position += 1
-                    
+
                 else:
                     cond_spaces, cond_indices = v._subspaces()
                     conditionals.append(cond_spaces)
                     conditional_idx.append([[position + j for j in s] for s in cond_indices])
                     if any(cond_indices):
                         position += max(max(s) for s in cond_indices if s) + 1
-                    
+
 
             if len(conditionals) == 0:
                 branches.append(branch)

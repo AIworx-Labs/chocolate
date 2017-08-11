@@ -104,23 +104,11 @@ class CMAES(SearchAlgorithm):
             # out = numpy.ones(self.dim) / 2.0
             out = self.random_state.rand(self.dim)
 
-            # Signify the first point to others using loss set to None
-            # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            # entry["_loss"] = None
-            entry.update(token)
-            self.conn.insert_result(entry)
-
             # Add the step to the complementary table
             # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            entry.update(_ancestor_id=-1, _search_algo="cmaes", **token)
+            entry = {str(k): v for k, v in zip(self.space.names(), out)}
+            entry.update(_ancestor_id=-1, **token)
             self.conn.insert_complementary(entry)
-
-            # return the true parameter set
-            return token, self.space(out)
 
         else:
             # Simulate the CMA-ES update for each ancestor.
@@ -145,20 +133,18 @@ class CMAES(SearchAlgorithm):
             # Add the step to the complementary table
             # Transform to dict with parameter names
             # entry = {str(k): v for k, v in zip(self.space.names(), y)}
-            entry = self.space(y, transform=False)
-            entry.update(_ancestor_id=ancestor_id, _search_algo="cmaes", **token)
+            entry = {str(k): v for k, v in zip(self.space.names(), y)}
+            entry.update(_ancestor_id=ancestor_id, **token)
             self.conn.insert_complementary(entry)
 
-            # Signify next point to others using loss set to None
-            # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            # entry["_loss"] = None
-            entry.update(token)
-            self.conn.insert_result(entry)
+        # Signify the first point to others using loss set to None
+        # Transform to dict with parameter names
+        entry = {str(k): v for k, v in zip(self.space.names(), out)}
+        entry.update(token)
+        self.conn.insert_result(entry)
 
-            # return the true parameter set
-            return token, self.space(out)
+        # return the true parameter set
+        return token, self.space(out)
 
     def _init(self):
         self.parent = None

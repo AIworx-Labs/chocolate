@@ -24,8 +24,6 @@ Chocolat is licensed under the `3-Clause BSD License
   * :doc:`tutorials/results`
   * :doc:`How to choose your algorithm <tutorials/algo>`
   * :doc:`Cross-validating the results <tutorials/crossvalidation>`
-  * :doc:`For developpers <tutorials/dev>`
-
 
 * :doc:`installation`
 * :doc:`api/index`
@@ -43,7 +41,6 @@ Chocolat is licensed under the `3-Clause BSD License
   tutorials/results
   tutorials/algo
   tutorials/crossvalidation
-  tutorials/dev
   installation
   api/index
   releases

@@ -14,7 +14,7 @@ class Bayes(SearchAlgorithm):
     with the addition of a conditional kernel when the provided space is conditional
     [Lévesque2017]_. Two acquisition functions are made available, the Upper
     Confidence Bound (UCB) and the Expected Improvement (EI).
-    
+
     Args:
         connection: A database connection object.
         space: the search space to explore with only discrete dimensions.
@@ -54,21 +54,15 @@ class Bayes(SearchAlgorithm):
         token.update({"_chocolate_id": len(X) + len(Xpending)})
         if len(X) < self.n_bootstrap:
             out = self.random_state.random_sample((len(list(self.space.names())),))
-            # Signify the first point to others using loss set to None
-            # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            entry.update(token)
-            self.conn.insert_result(entry)
-            return token, self.space(out)
+        else:
+            gp, y = self._fit_gp(X, Xpending, y)
+            out = self._acquisition(gp, y)
 
-        gp, y = self._fit_gp(X, Xpending, y)
-        out = self._acquisition(gp, y)
-        # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-        entry = self.space(out, transform=False)
+        # Signify the first point to others using loss set to None
+        # Transform to dict with parameter names
+        entry = {str(k): v for k, v in zip(self.space.names(), out)}
         entry.update(token)
         self.conn.insert_result(entry)
-
         return token, self.space(out)
 
     def _fit_gp(self, X, Xpending, y):
