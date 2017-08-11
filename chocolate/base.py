@@ -136,7 +136,6 @@ class SearchAlgorithm(object):
         elif isinstance(values, Number):
             values = {"_loss": values}
 
-        print(values)
         with self.conn.lock():
             self.conn.update_result(token, values)
 
