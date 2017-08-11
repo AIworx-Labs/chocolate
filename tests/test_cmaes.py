@@ -102,9 +102,9 @@ class TestCMAES(unittest.TestCase):
               {"_chocolate_id": 6, "a": 0.9, "b": 0.0, "_loss": 7},
               {"_chocolate_id": 7, "a": 0.9, "b": 0.0, "_loss": 8}]
 
-        comp = [{"_chocolate_id": 5, "a": 0.9, "b": 0.0, "_ancestor_id": 4, "_invalid": 0},
-                {"_chocolate_id": 6, "a": 0.9, "b": 0.0, "_ancestor_id": 5, "_invalid": 0},
-                {"_chocolate_id": 7, "a": 0.9, "b": 0.0, "_ancestor_id": 6, "_invalid": 0}]
+        comp = [{"_chocolate_id": 5, "a": 0.9, "b": 0.0, "_ancestor_id": 4},
+                {"_chocolate_id": 6, "a": 0.9, "b": 0.0, "_ancestor_id": 5},
+                {"_chocolate_id": 7, "a": 0.9, "b": 0.0, "_ancestor_id": 6}]
 
         self.mock_conn.all_results.return_value = db
         self.mock_conn.count_results.return_value = len(db)
@@ -154,9 +154,9 @@ class TestCMAES(unittest.TestCase):
               {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_loss": 7},
               {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_loss": 8}]
 
-        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1, "_invalid": 0},
-                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0, "_invalid": 0},
-                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1, "_invalid": 0}]
+        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1},
+                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0},
+                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1}]
 
         self.mock_conn.all_results.return_value = db
         self.mock_conn.count_results.return_value = len(db)
@@ -191,12 +191,12 @@ class TestCMAES(unittest.TestCase):
               {"_chocolate_id": 4, "a": 0.9, "b": 0.0},
               {"_chocolate_id": 5, "a": 0.9, "b": 0.0, "_loss": 8}]
 
-        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1, "_invalid": 0},
-                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0, "_invalid": 0},
-                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1, "_invalid": 0},
-                {"_chocolate_id": 3, "a": 0.9, "b": 0.0, "_ancestor_id": 2, "_invalid": 0},
-                {"_chocolate_id": 4, "a": 0.9, "b": 0.0, "_ancestor_id": 2, "_invalid": 0},
-                {"_chocolate_id": 5, "a": 0.9, "b": 0.0, "_ancestor_id": 2, "_invalid": 0}]
+        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1},
+                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0},
+                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1},
+                {"_chocolate_id": 3, "a": 0.9, "b": 0.0, "_ancestor_id": 2},
+                {"_chocolate_id": 4, "a": 0.9, "b": 0.0, "_ancestor_id": 2},
+                {"_chocolate_id": 5, "a": 0.9, "b": 0.0, "_ancestor_id": 2}]
 
         self.mock_conn.all_results.return_value = db
         self.mock_conn.count_results.return_value = len(db)
@@ -230,9 +230,9 @@ class TestCMAES(unittest.TestCase):
               {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_loss": 7},
               {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_loss": f}]
 
-        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1, "_invalid": 0},
-                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0, "_invalid": 0},
-                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1, "_invalid": 0}]
+        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1},
+                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0},
+                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1}]
 
         self.mock_conn.all_results.return_value = db
         self.mock_conn.count_results.return_value = len(db)
