@@ -63,6 +63,7 @@ class Connection(object):
         all_results = []
         for r in results:
             result = s([r[k] for k in s.names()])
+
             # Find all losses
             losses = {k: v for k, v in r.items() if k.startswith("_loss")}
             if all(l is not None for l in losses.values()):
@@ -136,7 +137,6 @@ class SearchAlgorithm(object):
         elif isinstance(values, Number):
             values = {"_loss": values}
 
-        print(values)
         with self.conn.lock():
             self.conn.update_result(token, values)
 

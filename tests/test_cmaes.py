@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 from hypothesis import given
 from hypothesis.strategies import floats
+import numpy
 
 from chocolate import CMAES, MOCMAES
 from chocolate.space import Space, uniform
@@ -102,9 +103,9 @@ class TestCMAES(unittest.TestCase):
               {"_chocolate_id": 6, "a": 0.9, "b": 0.0, "_loss": 7},
               {"_chocolate_id": 7, "a": 0.9, "b": 0.0, "_loss": 8}]
 
-        comp = [{"_chocolate_id": 5, "a": 0.9, "b": 0.0, "_ancestor_id": 4, "_invalid": 0},
-                {"_chocolate_id": 6, "a": 0.9, "b": 0.0, "_ancestor_id": 5, "_invalid": 0},
-                {"_chocolate_id": 7, "a": 0.9, "b": 0.0, "_ancestor_id": 6, "_invalid": 0}]
+        comp = [{"_chocolate_id": 5, "a": 0.9, "b": 0.0, "_ancestor_id": 4},
+                {"_chocolate_id": 6, "a": 0.9, "b": 0.0, "_ancestor_id": 5},
+                {"_chocolate_id": 7, "a": 0.9, "b": 0.0, "_ancestor_id": 6}]
 
         self.mock_conn.all_results.return_value = db
         self.mock_conn.count_results.return_value = len(db)
@@ -154,9 +155,9 @@ class TestCMAES(unittest.TestCase):
               {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_loss": 7},
               {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_loss": 8}]
 
-        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1, "_invalid": 0},
-                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0, "_invalid": 0},
-                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1, "_invalid": 0}]
+        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1},
+                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0},
+                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1}]
 
         self.mock_conn.all_results.return_value = db
         self.mock_conn.count_results.return_value = len(db)
@@ -191,12 +192,12 @@ class TestCMAES(unittest.TestCase):
               {"_chocolate_id": 4, "a": 0.9, "b": 0.0},
               {"_chocolate_id": 5, "a": 0.9, "b": 0.0, "_loss": 8}]
 
-        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1, "_invalid": 0},
-                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0, "_invalid": 0},
-                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1, "_invalid": 0},
-                {"_chocolate_id": 3, "a": 0.9, "b": 0.0, "_ancestor_id": 2, "_invalid": 0},
-                {"_chocolate_id": 4, "a": 0.9, "b": 0.0, "_ancestor_id": 2, "_invalid": 0},
-                {"_chocolate_id": 5, "a": 0.9, "b": 0.0, "_ancestor_id": 2, "_invalid": 0}]
+        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1},
+                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0},
+                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1},
+                {"_chocolate_id": 3, "a": 0.9, "b": 0.0, "_ancestor_id": 2},
+                {"_chocolate_id": 4, "a": 0.9, "b": 0.0, "_ancestor_id": 2},
+                {"_chocolate_id": 5, "a": 0.9, "b": 0.0, "_ancestor_id": 2}]
 
         self.mock_conn.all_results.return_value = db
         self.mock_conn.count_results.return_value = len(db)
@@ -230,9 +231,9 @@ class TestCMAES(unittest.TestCase):
               {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_loss": 7},
               {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_loss": f}]
 
-        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1, "_invalid": 0},
-                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0, "_invalid": 0},
-                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1, "_invalid": 0}]
+        comp = [{"_chocolate_id": 0, "a": 0.9, "b": 0.0, "_ancestor_id": -1},
+                {"_chocolate_id": 1, "a": 0.9, "b": 0.0, "_ancestor_id": 0},
+                {"_chocolate_id": 2, "a": 0.9, "b": 0.0, "_ancestor_id": 1}]
 
         self.mock_conn.all_results.return_value = db
         self.mock_conn.count_results.return_value = len(db)
@@ -257,6 +258,37 @@ class TestCMAES(unittest.TestCase):
         self.assertEqual(comp[0][0]["_chocolate_id"], 3)
         self.assertIn("_ancestor_id", comp[0][0])
         self.assertEqual(comp[0][0]["_ancestor_id"], 2)
+
+    def test_conditional_n_steps(self):
+        s = [{"a": uniform(1, 10), "b": uniform(5, 15), "C": 0},
+             {"c": uniform(2, 3), "C": 1}]
+
+        db = list()
+        comp = list()
+
+        self.mock_conn = MagicMock(name="connection")
+        self.mock_conn.get_space.return_value = Space(s)
+        self.mock_conn.all_results.return_value = db
+        self.mock_conn.count_results.return_value = len(db)
+        self.mock_conn.all_complementary.return_value = comp
+
+        self.search = CMAES(self.mock_conn, s)
+        for i in range(25):
+            token, p = self.search.next()
+
+            self.assertIn("_chocolate_id", token)
+            self.assertEqual(token["_chocolate_id"], i)
+
+            entry = self.mock_conn.insert_result.call_args[0][0]
+            entry["_loss"] = numpy.random.randn()
+            db.append(entry)
+            self.mock_conn.count_results.return_value = len(db)
+            self.mock_conn.insert_result.reset_mock()
+            
+            if self.mock_conn.insert_complementary.call_count > 0:
+                c = self.mock_conn.insert_complementary.call_args[0][0]
+                comp.append(c)
+                self.mock_conn.insert_complementary.reset_mock()
 
 
 class TestMOCMAES(unittest.TestCase):
@@ -502,3 +534,35 @@ class TestMOCMAES(unittest.TestCase):
         self.assertIn("_chocolate_id", comp[0][0])
         self.assertEqual(comp[0][0]["_chocolate_id"], 3)
         self.assertIn("_parent_idx", comp[0][0])
+
+    def test_conditional_n_steps(self):
+        s = [{"a": uniform(1, 10), "b": uniform(5, 15), "C": 0},
+             {"c": uniform(2, 3), "C": 1}]
+
+        db = list()
+        comp = list()
+
+        self.mock_conn = MagicMock(name="connection")
+        self.mock_conn.get_space.return_value = Space(s)
+        self.mock_conn.all_results.return_value = db
+        self.mock_conn.count_results.return_value = len(db)
+        self.mock_conn.all_complementary.return_value = comp
+
+        self.search = MOCMAES(self.mock_conn, s, mu=2)
+        for i in range(25):
+            token, p = self.search.next()
+
+            self.assertIn("_chocolate_id", token)
+            self.assertEqual(token["_chocolate_id"], i)
+
+            entry = self.mock_conn.insert_result.call_args[0][0]
+            entry["_loss_0"] = numpy.random.randn()
+            entry["_loss_1"] = numpy.random.randn()
+            db.append(entry)
+            self.mock_conn.count_results.return_value = len(db)
+            self.mock_conn.insert_result.reset_mock()
+            
+            if self.mock_conn.insert_complementary.call_count > 0:
+                c = self.mock_conn.insert_complementary.call_args[0][0]
+                comp.append(c)
+                self.mock_conn.insert_complementary.reset_mock()

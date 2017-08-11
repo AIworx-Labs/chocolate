@@ -101,26 +101,13 @@ class CMAES(SearchAlgorithm):
 
         # If the parent is still None, no information available
         if self.parent is None:
-            # out = numpy.ones(self.dim) / 2.0
             out = self.random_state.rand(self.dim)
-
-            # Signify the first point to others using loss set to None
-            # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            # entry["_loss"] = None
-            entry.update(token)
-            self.conn.insert_result(entry)
 
             # Add the step to the complementary table
             # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            entry.update(_ancestor_id=-1, _search_algo="cmaes", **token)
+            entry = {str(k): v for k, v in zip(self.space.names(), out)}
+            entry.update(_ancestor_id=-1, **token)
             self.conn.insert_complementary(entry)
-
-            # return the true parameter set
-            return token, self.space(out)
 
         else:
             # Simulate the CMA-ES update for each ancestor.
@@ -144,21 +131,18 @@ class CMAES(SearchAlgorithm):
 
             # Add the step to the complementary table
             # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), y)}
-            entry = self.space(y, transform=False)
-            entry.update(_ancestor_id=ancestor_id, _search_algo="cmaes", **token)
+            entry = {str(k): v for k, v in zip(self.space.names(), y)}
+            entry.update(_ancestor_id=ancestor_id, **token)
             self.conn.insert_complementary(entry)
 
-            # Signify next point to others using loss set to None
-            # Transform to dict with parameter names
-            # entry = {str(k): v for k, v in zip(self.space.names(), out)}
-            entry = self.space(out, transform=False)
-            # entry["_loss"] = None
-            entry.update(token)
-            self.conn.insert_result(entry)
+        # Signify the first point to others using loss set to None
+        # Transform to dict with parameter names
+        entry = {str(k): v for k, v in zip(self.space.names(), out)}
+        entry.update(token)
+        self.conn.insert_result(entry)
 
-            # return the true parameter set
-            return token, self.space(out)
+        # return the true parameter set
+        return token, self.space(out)
 
     def _init(self):
         self.parent = None
@@ -590,22 +574,6 @@ class MOCMAES(SearchAlgorithm):
 
         return [valid_candidates[i][0] for i in chosen]
 
-    # def _rankOneUpdate(self, invCholesky, A, alpha, beta, v):
-    #     w = numpy.dot(invCholesky, v)
-
-    #     # Under this threshold, the update is mostly noise
-    #     if w.max() > 1e-20:
-    #         w_inv = numpy.dot(w, invCholesky)
-    #         norm_w2 = numpy.sum(w ** 2)
-    #         a = sqrt(alpha)
-    #         root = numpy.sqrt(1 + beta / alpha * norm_w2)
-    #         b = a / norm_w2 * (root - 1)
-
-    #         A = a * A + b * numpy.outer(v, w)
-    #         invCholesky = 1.0 / a * invCholesky - b / (a ** 2 + a * b * norm_w2) * numpy.outer(w, w_inv)
-
-    #     return invCholesky, A
-
     def _update_internals(self, candidate):
         assert len(self.parents) == self.mu, "Invalid number of parents in MO-CMA-ES internal update"
         assert all("loss" in p for p in self.parents), "One parent has no loss in MO-CMA-ES internal update"
@@ -624,12 +592,9 @@ class MOCMAES(SearchAlgorithm):
             if self.psucc[p_idx] < self.pthresh:
                 pc = (1 - self.cc) * self.pc[p_idx] + numpy.sqrt(self.cc * (2 - self.cc)) * candidate["step"] / last_steps[p_idx]
                 C = (1 - self.ccov) * self.C[p_idx] + self.ccov * numpy.outer(pc, pc)
-                # invCholesky, A = self._rankOneUpdate(self.invCholesky[p_idx], self.A[p_idx], 1 - self.ccov, self.ccov, pc)
             else:
                 pc = (1 - self.cc) * self.pc[p_idx]
                 C = (1 - self.ccov) * self.C[p_idx] + self.ccov * (numpy.outer(pc, pc) + self.cc * (2 - self.cc) * self.C[p_idx])
-                #pc_weight = self.cc * (2.0 - self.cc)
-                #invCholesky, A = self._rankOneUpdate(self.invCholesky[p_idx], self.A[p_idx], 1 - self.cconv + pc_weight, self.cconv, pc)
 
             # Replace the unselected parent parameters by those of the candidate
             not_chosen = set(range(self.mu + 1)) - set(chosen)
@@ -641,7 +606,6 @@ class MOCMAES(SearchAlgorithm):
             self.pc[not_chosen] = pc
             self.A[not_chosen] = numpy.linalg.cholesky(C)
             self.C[not_chosen] = C
-            # self.invCholesky[not_chosen] = invCholesky
 
         # Update the dimensions where integer mutation is needed
         self.i_I_R[p_idx] = numpy.flatnonzero(2 * self.sigmas[p_idx] * numpy.diag(self.C[p_idx]) ** 0.5 < self.S_int)

@@ -14,7 +14,7 @@ try:
 except ImportError:
     pymongo = None
 
-from chocolate import SQLiteConnection, MongoDBConnection, DataFrameConnection, Space, uniform
+from chocolate import SQLiteConnection, MongoDBConnection, DataFrameConnection, Space, uniform, QuasiRandom
 
 if pymongo is not None:
     client = pymongo.MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=5)
@@ -131,6 +131,30 @@ class Base(object):
 
         self.assertEqual(space, space_read)
         self.assertRaises(AssertionError, self.conn.insert_space, space)
+
+
+    def test_conditional_space(self):
+        u = uniform(0.0, 2)
+        l = uniform(1, 4)
+        qu = uniform(0.01, 1)
+        ql = uniform(5, 10)
+        s = [{"k1" : "a", "k2" : "b",
+                        "a" : u,
+                        "b" : l},
+                   {"k1" : "a", "k2" : "c",
+                        "a" : qu,
+                        "c" : ql}]
+        space = Space(s)
+
+        space_read = self.conn.get_space()
+        self.assertEqual(space_read, None)
+
+        self.conn.insert_space(space)
+        space_read = self.conn.get_space()
+
+        self.assertEqual(space, space_read)
+        self.assertRaises(AssertionError, self.conn.insert_space, space)
+
 
     def test_clear(self):
         self.conn.insert_result({"foo": "bar"})

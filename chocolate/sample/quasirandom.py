@@ -18,7 +18,7 @@ class QuasiRandom(SearchAlgorithm):
 
     This sampler will draw random numbers for each entry in the database to
     restore the random state for reproductibility when used concurrently with
-    other random samplers. 
+    other random samplers.
 
     Args:
         connection: A database connection object.
@@ -77,9 +77,7 @@ class QuasiRandom(SearchAlgorithm):
         self.rndrawn += i - self.rndrawn + 1
 
         # Signify next point to others using loss set to None
-        # entry = {k : v for k, v in zip(self.space.names(), out)}
-        entry = self.space(out, transform=False)
-        # entry["_loss"] = None
+        entry = {k : v for k, v in zip(self.space.names(), out)}
         entry.update(token)
         self.conn.insert_result(entry)
 
