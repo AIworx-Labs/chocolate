@@ -3,15 +3,20 @@ from collections import defaultdict
 import numpy
 
 try:
-    # try importing the C version
-    from . import hv_ as hv
+    # try importing the C version and set docstring
+    from .hv_ import hypervolume
+    from .pyhv import hypervolume as __hv
+    hypervolume.__doc__ = __hv.__doc__
+    del __hv
 except ImportError:
     # fallback on python version
-    from . import pyhv as hv
+    from .pyhv import hypervolume
 
 
 def argsortNondominated(losses, k, first_front_only=False):
-    """Sort the first *k* *losses* into different nondomination levels
+    """Sort input in Pareto-equal groups.
+
+    Sort the first *k* *losses* into different nondomination levels
     using the "Fast Nondominated Sorting Approach" proposed by Deb et al.,
     see [Deb2002]_. This algorithm has a time complexity of :math:`O(MN^2)`,
     where :math:`M` is the number of objectives and :math:`N` the number of
@@ -21,7 +26,7 @@ def argsortNondominated(losses, k, first_front_only=False):
     :param k: The number of elements to select.
     :param first_front_only: If :obj:`True` sort only the first front and
                              exit.
-    :returns: A list of Pareto fronts (lists) containing the individuals
+    :returns: A list of Pareto fronts (lists) containing the losses
               index.
 
     .. [Deb2002] Deb, Pratab, Agarwal, and Meyarivan, "A fast elitist
@@ -93,12 +98,25 @@ def dominates(loss1, loss2, obj=slice(None)):
 
 
 def hypervolume_indicator(front, **kargs):
-    """Returns the index of the individual with the least hypervolume
+    """Indicator function using the hypervolume value.
+
+    Computes the contribution of each of the front candidates to the
+    front hypervolume. The hypervolume indicator assumes minimization.
+
+    Args:
+        front: A list of Pareto equal candidate solutions.
+        ref: The origin from which to compute the hypervolume (optional).
+            If not given, ref is set to the maximum value in each dimension + 1.
+
+    Returns:
+        The index of the least contributing candidate.
+
+    Returns the index of the candidate loss with the least hypervolume
     contribution. The provided *front* should be a set of non-dominated
-    individuals having each a :attr:`fitness` attribute.
+    losses.
     """
     # Hypervolume use implicit minimization
-    obj = numpy.array([c["loss"] for c in front])
+    obj = numpy.array(front)
     ref = kargs.get("ref", None)
     if ref is None:
         ref = numpy.max(obj, axis=0) + 1
@@ -106,7 +124,7 @@ def hypervolume_indicator(front, **kargs):
     def contribution(i):
         # The contribution of point p_i in point set P
         # is the hypervolume of P without p_i
-        return hv.hypervolume(numpy.concatenate((obj[:i], obj[i+1:])), ref)
+        return hypervolume(numpy.concatenate((obj[:i], obj[i+1:])), ref)
 
     contrib_values = map(contribution, range(len(front)))
 

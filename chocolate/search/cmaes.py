@@ -552,9 +552,9 @@ class MOCMAES(SearchAlgorithm):
         """Returns the indices of the selected individuals"""
         valid_candidates = [(i, c) for i, c in enumerate(candidates) if c["loss"] is not None]
         if len(valid_candidates) <= self.mu:
-            return [i for i, c in valid_candidates]
+            return [i for i, _ in valid_candidates]
 
-        losses = [c["loss"] for i, c in valid_candidates]
+        losses = [c["loss"] for _, c in valid_candidates]
         pareto_fronts = argsortNondominated(losses, len(losses))
 
         chosen = list()
@@ -576,14 +576,14 @@ class MOCMAES(SearchAlgorithm):
         # Separate the mid front to accept only k individuals
         k = self.mu - len(chosen)
         if k > 0:
-            # reference point is chosen in the complete population
-            # as the worst in each dimension +1
+            # Reference point is chosen as the worst in each dimension +1
             # It is mostly arbitrary
             ref = numpy.array([c["loss"] for i, c in valid_candidates])
             ref = numpy.max(ref, axis=0) + 1
 
+            # Remove sequentially k individuals
             for _ in range(len(mid_front) - k):
-                idx = self.indicator([candidates[i] for i in mid_front], ref=ref)
+                idx = self.indicator([valid_candidates[i][1]["loss"] for i in mid_front], ref=ref)
                 mid_front.pop(idx)
 
             chosen += mid_front
