@@ -8,17 +8,18 @@ information from the database. Chocolate is thus ideal in controlled computing
 environments where it is hard to maintain a master process for the duration
 of the optimisation.
 
-Chocolate has been designed and optimized for hyperparameter optimization where 
+Chocolate has been designed and optimized for hyperparameter optimization where
 each function evaluation takes very long to complete and is difficult to parallelize.
 
 Chocolat is licensed under the `3-Clause BSD License
 <https://opensource.org/licenses/BSD-3-Clause>`_
 
 * **Tutorials**
-  
+
   * :doc:`Basics (Start here!) <tutorials/basics>`
   * :doc:`Something a bit more realistic <tutorials/sklearn>`
   * :doc:`Optimizing multiple models at once <tutorials/multimodel>`
+  * :doc:`Optimizing multiple losses at once <tutorials/multiobjective>`
   * :doc:`Let's go to Tensor Flow <tutorials/tf>`
   * :doc:`tutorials/results`
   * :doc:`How to choose your algorithm <tutorials/algo>`
@@ -35,6 +36,7 @@ Chocolat is licensed under the `3-Clause BSD License
   tutorials/basics
   tutorials/sklearn
   tutorials/multimodel
+  tutorials/multiobjective
   tutorials/tf
   tutorials/results
   tutorials/algo

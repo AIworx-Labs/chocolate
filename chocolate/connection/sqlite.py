@@ -64,12 +64,12 @@ class SQLiteConnection(Connection):
         self._lock = filelock.FileLock("{}.lock".format(db_path))
         self.hold_lock = False
 
-        with self.lock():
-            db = dataset.connect(self.url)
+        # with self.lock():
+        #     db = dataset.connect(self.url)
 
-            # Initialize a result table and ensure float for loss
-            results = db[self.result_table_name]
-            results.create_column("_loss", sqlalchemy.Float)
+        #     # Initialize a result table and ensure float for loss
+        #     results = db[self.result_table_name]
+        #     results.create_column("_loss", sqlalchemy.Float)
 
     @contextmanager
     def lock(self, timeout=-1, poll_interval=0.05):
@@ -194,8 +194,8 @@ class SQLiteConnection(Connection):
         db[self.result_table_name].drop()
         db[self.complementary_table_name].drop()
         db[self.space_table_name].drop()
-        results = db[self.result_table_name]
-        results.create_column("_loss", sqlalchemy.Float)
+        # results = db[self.result_table_name]
+        # results.create_column("_loss", sqlalchemy.Float)
 
     def pop_id(self, document):
         """Pops the database unique id from the document."""

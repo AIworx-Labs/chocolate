@@ -42,7 +42,7 @@ algorithm. We will optimize over a mix of continuous and discrete variables ::
          "max_depth"     : choco.quantized_uniform(2, 10, 2),
          "subsample"     : choco.quantized_uniform(0.7, 1.05, 0.05)}
 
-Finally, we will define our sampling algorithm, :: 
+Finally, we will define our sampling algorithm, ::
 
     sampler = choco.QuasiRandom(conn, s, random_state=110, skip=3)
 

@@ -174,6 +174,7 @@ class TestBayes(unittest.TestCase):
 
             entry = self.mock_conn.insert_result.call_args[0][0]
             entry["_loss"] = numpy.random.randn()
+            self.mock_conn.insert_result.reset_mock()
 
             db.append(entry)
             self.mock_conn.count_results.return_value = len(db)
