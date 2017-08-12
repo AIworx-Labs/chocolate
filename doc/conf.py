@@ -52,7 +52,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'CHOCOLATE'
+project = u'Chocolate'
 copyright = u'2016-%s, NovaSyst' % time.strftime('%Y')
 
 # The version info for the project you're documenting, acts as replacement for
