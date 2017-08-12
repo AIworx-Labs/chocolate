@@ -131,6 +131,9 @@ plot_html_show_formats = True
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = ["_themes"]
 
+def setup(app):
+  app.add_stylesheet( "css/hatnotes.css" )
+
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'classic' and 'alabaster'.
 html_theme = 'sphinx_rtd_theme'

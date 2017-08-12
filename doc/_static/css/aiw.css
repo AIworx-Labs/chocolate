@@ -1,0 +1,52 @@
+a, a:hover, a:visited {
+    color: #EE3342 !important;
+}
+a:hover {
+    border-bottom: 1px dotted #EE3342 !important;
+}
+body, .btn, textarea, input[type="button"], input[type="reset"], input[type="submit"], input[type="text"], input[type="password"], input[type="email"], input[type="url"], input[type="date"], input[type="month"], input[type="time"], input[type="datetime"], input[type="datetime-local"], input[type="week"], input[type="number"], input[type="search"], input[type="tel"], input[type="color"], .rst-versions {
+    font-family: "Gotham Rounded", "proxima-nova", "Helvetica Neue", Arial, sans-serif !important;   
+}
+.wy-side-nav-search>a, .wy-side-nav-search .wy-dropdown>a {
+    font-size: 175% !important;
+}
+.wy-nav .wy-menu-vertical a {
+    color: #222B64 !important;
+}
+.wy-menu a:hover {
+    text-decoration: none;
+}
+.wy-menu-vertical a:hover {
+    background-color: #222B64 !important;
+}
+.wy-side-nav-search {
+    background-color: #222B64 !important;
+    color: #EE3342 !important;
+}
+.wy-nav-top {
+    background: #222B64 !important;
+}
+.wy-nav-side {
+    background-color: #333B64
+}
+.wy-nav-side a {
+    color: #fff !important;
+}
+.wy-nav-side a.icon {
+    margin-top: 20px;
+}
+.wy-side-nav-search>div.version {
+    color: #EE3342;
+}
+@font-face {
+    font-family: "Gotham Rounded";
+    font-style: normal;
+    font-weight: 400;
+    src: local("Gotham Rounded Book"), local("GothamRounded-Book"), url(../fonts/GothamRounded-Book.otf) format("truetype");
+}
+@font-face {
+    font-family: "Gotham Rounded";
+    font-style: bold;
+    font-weight: 700;
+    src: local("Gotham Rounded Bold"), local("GothamRounded-Bold"), url(../fonts/GothamRounded-Bold.otf) format("truetype");
+}
