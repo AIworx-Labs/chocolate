@@ -6,6 +6,7 @@ a:hover {
 }
 body, .btn, textarea, input[type="button"], input[type="reset"], input[type="submit"], input[type="text"], input[type="password"], input[type="email"], input[type="url"], input[type="date"], input[type="month"], input[type="time"], input[type="datetime"], input[type="datetime-local"], input[type="week"], input[type="number"], input[type="search"], input[type="tel"], input[type="color"], .rst-versions {
     font-family: "Gotham Rounded", "proxima-nova", "Helvetica Neue", Arial, sans-serif !important;   
+    color: #000 !important;
 }
 .wy-side-nav-search>a, .wy-side-nav-search .wy-dropdown>a {
     font-size: 175% !important;
