@@ -49,6 +49,7 @@ body, .btn, textarea, input[type="button"], input[type="reset"], input[type="sub
 }
 .rst-versions a, .rst-versions a:hover, .rst-versions a:visited {
     color: #fff !important;
+    border-bottom: none !important;
 }
 @font-face {
     font-family: "Gotham Rounded";
