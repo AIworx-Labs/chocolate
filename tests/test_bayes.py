@@ -127,7 +127,7 @@ class TestBayes(unittest.TestCase):
         self.mock_conn.all_complementary.return_value = []
 
         gp, y = self.search._fit_gp(*self.search._load_database())
-        out = self.search._ei([0.25, 0.25], gp, y.max(), 0.1)
+        out = self.search._ei([[0.25, 0.25]], gp, y.max(), 0.1)
 
         self.assertIsNotNone(out)
 
@@ -138,7 +138,7 @@ class TestBayes(unittest.TestCase):
         self.mock_conn.all_complementary.return_value = []
 
         gp, y = self.search._fit_gp(*self.search._load_database())
-        out = self.search._ucb([0.25, 0.25], gp, 2.675)
+        out = self.search._ucb([[0.25, 0.25]], gp, 2.675)
 
         self.assertIsNotNone(out)
 
