@@ -1890,7 +1890,7 @@ button[disabled] {
     background-color: #27AE60;
     text-decoration: none;
     font-weight: normal;
-    font-family: "Lato", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Gotham Rounded", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
     box-shadow: 0px 1px 2px -1px rgba(255, 255, 255, 0.5) inset, 0px -2px 0px 0px rgba(0, 0, 0, 0.1) inset;
     outline-none: false;
     vertical-align: middle;
@@ -2272,7 +2272,7 @@ input {
 input[type="button"], input[type="reset"], input[type="submit"] {
     -webkit-appearance: button;
     cursor: pointer;
-    font-family: "Lato", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Gotham Rounded", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
     *overflow: visible;
 }
 input[type="text"], input[type="password"], input[type="email"], input[type="url"], input[type="date"], input[type="month"], input[type="time"], input[type="datetime"], input[type="datetime-local"], input[type="week"], input[type="number"], input[type="search"], input[type="tel"], input[type="color"] {
@@ -2281,7 +2281,7 @@ input[type="text"], input[type="password"], input[type="email"], input[type="url
     display: inline-block;
     border: 1px solid #ccc;
     font-size: 80%;
-    font-family: "Lato", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Gotham Rounded", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
     box-shadow: inset 0 1px 3px #ddd;
     border-radius: 0;
     -webkit-transition: border 0.3s linear;
@@ -2344,7 +2344,7 @@ textarea {
     overflow: auto;
     vertical-align: top;
     width: 100%;
-    font-family: "Lato", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Gotham Rounded", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
 }
 select, textarea {
     padding: .5em .625em;
@@ -2674,12 +2674,13 @@ input[type="radio"][disabled], input[type="checkbox"][disabled] {
     white-space: nowrap;
 }
 a {
-    color: #222B64;
+    color: #EE3342;
     text-decoration: none;
     cursor: pointer;
 }
 a:hover {
-    color: #43496F;
+    color: #EE3342;
+    border-bottom: 1px dotted #EE3342;
 }
 a:visited {
     color: #EE3342;
@@ -2689,14 +2690,14 @@ html {
     overflow-x: hidden;
 }
 body {
-    font-family: "Lato", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Gotham Rounded", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
     font-weight: normal;
     color: #000;
     min-height: 100%;
     overflow-x: hidden;
     background: #edf0f2;
 }
-.document a {
+/*.document a {
     color: #222B64;
     text-decoration-line: underline;
     text-decoration-style: dotted;
@@ -2718,7 +2719,7 @@ body {
 }
 .document ul a:visited {
     color: #EE3342;
-}
+}*/
 .wy-text-left {
     text-align: left;
 }
@@ -3334,10 +3335,11 @@ div[class^='highlight'] pre {
     display: block;
     position: relative;
     font-size: 90%;
-    color: #222b64;
+    color: #FFF;
+    border-bottom: none;
 }
 .wy-menu-vertical a:hover {
-    /*background-color: #91929B;*/
+    background-color: #222B64;
     cursor: pointer;
 }
 .wy-menu-vertical a:hover span.toctree-expand {
@@ -3357,7 +3359,7 @@ div[class^='highlight'] pre {
     padding: .809em;
     margin-bottom: .809em;
     z-index: 200;
-    background-color: #fcfcfc;
+    background-color: #222B64;
     text-align: center;
     padding: .809em;
     display: block;
@@ -3379,15 +3381,16 @@ div[class^='highlight'] pre {
     padding: 5px;
     border-radius: 100%}
 .wy-side-nav-search>a, .wy-side-nav-search .wy-dropdown>a {
-    color: #EE3342;
-    font-size: 100%;
+    color: #FFF;
+    font-size: 175%;
     font-weight: bold;
     display: inline-block;
+    border-bottom: none;
     padding: 4px 6px;
     margin-bottom: .809em;
 }
 .wy-side-nav-search>a:hover, .wy-side-nav-search .wy-dropdown>a:hover {
-    background: rgba(255, 255, 255, 0.1);
+    /*background: rgba(255, 255, 255, 0.1);*/
 }
 .wy-side-nav-search>a img.logo, .wy-side-nav-search .wy-dropdown>a img.logo {
     display: block;
@@ -3461,8 +3464,11 @@ div[class^='highlight'] pre {
     overflow-x: hidden;
     overflow-y: hidden;
     min-height: 100%;
-    background: #fcfcfc;
+    background: #181E48;
     z-index: 200;
+}
+.wy-nav-side a.icon {
+    margin-top: 20px;
 }
 .wy-side-scroll {
     width: 320px;
@@ -3635,7 +3641,7 @@ footer span.commit code, footer span.commit .rst-content tt, .rst-content footer
     color: #fcfcfc;
     background: #1f1d1d;
     border-top: solid 10px #343131;
-    font-family: "Lato", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Gotham Rounded", "proxima-nova", "Helvetica Neue", Arial, sans-serif;
     z-index: 400;
 }
 .rst-versions a {
@@ -4056,5 +4062,17 @@ img {
     font-style: normal;
     font-weight: 700;
     src: local("Roboto Slab Bold"), local("RobotoSlab-Bold"), url(../fonts/RobotoSlab-Bold.ttf) format("truetype");
+}
+@font-face {
+    font-family: "Gotham Rounded";
+    font-style: normal;
+    font-weight: 400;
+    src: local("Gotham Rounded Book"), local("GothamRounded-Book"), url(../fonts/GothamRounded-Book.otf) format("truetype");
+}
+@font-face {
+    font-family: "Gotham Rounded";
+    font-style: bold;
+    font-weight: 700;
+    src: local("Gotham Rounded Bold"), local("GothamRounded-Bold"), url(../fonts/GothamRounded-Bold.otf) format("truetype");
 }
 /*# sourceMappingURL=theme.css.map */
