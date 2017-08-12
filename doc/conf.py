@@ -133,7 +133,7 @@ html_theme_path = ["_themes"]
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'classic' and 'alabaster'.
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'aiw_theme'
 # html_theme = 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
