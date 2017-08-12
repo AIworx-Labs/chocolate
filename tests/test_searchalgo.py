@@ -61,7 +61,7 @@ class TestSearchAlgorithm(unittest.TestCase):
         token = {"a": 0}
         algo = SearchAlgorithm(self.mock_conn, None)
 
-        algo.update(token, {"_loss": 9.0})
+        algo.update(token, {"f1": 9.0})
 
-        expected = {"_loss": 9.0}
+        expected = {"_loss_f1": 9.0}
         self.mock_conn.update_result.assert_called_with(token, expected)

@@ -10,13 +10,15 @@ Chocolate has been designed and optimized for hyperparameter optimization where
 each function evaluation takes very long to complete and is difficult to parallelize.
 Chocolate allows optimization over **conditional search spaces** either as using
 conditional kernels in a Bayesian optimizer or as a multi-armed bandit problem using
-Thompson sampling.
+Thompson sampling. Chocolate also handles **multi-objective optimisation** where
+multiple loss funtions are optimized simultaneously.
 
 Chocolate provides the following sampling/searching algorithms:
 - Grid
 - Random
 - QuasiRandom
 - CMAES
+- MOCMAES
 - Bayesian
 
 and three useful backends:

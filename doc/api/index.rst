@@ -11,6 +11,7 @@ Library Reference
    search
    conditional
    crossvalidation
+   multiobjective
 
 .. currentmodule:: chocolate
 
@@ -51,6 +52,7 @@ Library Reference
 
    Bayes
    CMAES
+   MOCMAES
 
 .. rubric:: :doc:`conditional`
 
@@ -65,3 +67,12 @@ Library Reference
    :nosignatures:
 
    Repeat
+
+.. rubric:: :doc:`multiobjective`
+
+.. autosummary::
+   :nosignatures:
+
+   mo.argsortNondominated
+   mo.hypervolume_indicator
+   mo.hypervolume
