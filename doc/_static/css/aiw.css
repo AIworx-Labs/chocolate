@@ -14,11 +14,10 @@ body, .btn, textarea, input[type="button"], input[type="reset"], input[type="sub
     color: #222B64 !important;
 }
 .wy-menu a:hover {
-    /* text-decoration: none !important; */
+    border-bottom: none !important;
 }
 .wy-menu-vertical a:hover {
     background-color: #222B64 !important;
-    border-bottom: none !important;
 }
 .wy-side-nav-search {
     background-color: #222B64 !important;
@@ -28,16 +27,22 @@ body, .btn, textarea, input[type="button"], input[type="reset"], input[type="sub
     background: #222B64 !important;
 }
 .wy-nav-side {
-    background-color: #333B64
+    background-color: #333B64 !important;
 }
 .wy-nav-side a {
     color: #fff !important;
 }
 .wy-nav-side a.icon {
-    margin-top: 20px;
+    margin-top: 20px !important;
 }
 .wy-side-nav-search>div.version {
-    color: #EE3342;
+    color: #EE3342 !important;
+}
+.rst-versions {
+    background-color: #222B64 !important;
+}
+.rst-versions a, .rst-versions a:hover, .rst-versions a:visited {
+    color: #fff !important;
 }
 @font-face {
     font-family: "Gotham Rounded";
