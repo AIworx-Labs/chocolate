@@ -14,10 +14,11 @@ body, .btn, textarea, input[type="button"], input[type="reset"], input[type="sub
     color: #222B64 !important;
 }
 .wy-menu a:hover {
-    text-decoration: none;
+    /* text-decoration: none !important; */
 }
 .wy-menu-vertical a:hover {
     background-color: #222B64 !important;
+    border-bottom: none !important;
 }
 .wy-side-nav-search {
     background-color: #222B64 !important;
