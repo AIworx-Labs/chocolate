@@ -1,57 +1,67 @@
 a, a:hover, a:visited {
-    color: #EE3342 !important;
+    color: #EE3342;
 }
 a:hover {
-    border-bottom: 1px dotted #EE3342 !important;
+    border-bottom: 1px dotted #EE3342;
 }
 body, .btn, textarea, input[type="button"], input[type="reset"], input[type="submit"], input[type="text"], input[type="password"], input[type="email"], input[type="url"], input[type="date"], input[type="month"], input[type="time"], input[type="datetime"], input[type="datetime-local"], input[type="week"], input[type="number"], input[type="search"], input[type="tel"], input[type="color"], .rst-versions {
-    font-family: "Gotham Rounded", "proxima-nova", "Helvetica Neue", Arial, sans-serif !important;   
-    color: #222B64 !important;
+    font-family: "Gotham Rounded", "proxima-nova", "Helvetica Neue", Arial, sans-serif;   
+    color: #222B64;
 }
 .wy-side-nav-search>a, .wy-side-nav-search .wy-dropdown>a {
-    font-size: 175% !important;
+    font-size: 175%;
 }
 .wy-nav .wy-menu-vertical a {
-    color: #222B64 !important;
+    color: #222B64;
 }
 .wy-menu a:hover {
-    border-bottom: none !important;
+    border-bottom: none;
 }
 .wy-menu-vertical a:hover {
-    background-color: #222B64 !important;
+    color: #fff;
+    background-color: #222B64;
 }
 .wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
-    background-color: #222B64 !important;
+    background-color: #222B64;
+    color: #fff;
 }
 .wy-menu-vertical li.on a:hover, .wy-menu-vertical li.current>a:hover {
-    border-bottom: solid 1px #c9c9c9 !important;
+    background-color: #222B64;
+    border-bottom: solid 1px #c9c9c9;
+    color: #fff;
+}
+.wy-menu-vertical li.toctree-l2.current>a {
+    background-color: #c9c9c9;
+}
+.wy-menu-vertical li.on a span.toctree-expand, .wy-menu-vertical li.current>a span.toctree-expand {
+    color: #fff;
 }
 .wy-side-nav-search {
-    background-color: #222B64 !important;
-    color: #EE3342 !important;
+    background-color: #222A64;
+    color: #EE3342;
 }
 .wy-nav-top {
-    background: #222B64 !important;
+    background: #222B64;
 }
 .wy-nav-side {
-    background-color: #333B64 !important;
+    background-color: #333B64;
 }
 .wy-nav-side a {
-    color: #fff !important;
-    border-bottom: none !important;
+    color: #fff;
 }
 .wy-nav-side a.icon {
-    margin-top: 20px !important;
+    margin-top: 20px;
+    border-bottom: none;
 }
 .wy-side-nav-search>div.version {
-    color: #EE3342 !important;
+    color: #EE3342;
 }
 .rst-versions {
-    background-color: #222B64 !important;
+    background-color: #222B64;
 }
 .rst-versions a, .rst-versions a:hover, .rst-versions a:visited {
-    color: #fff !important;
-    border-bottom: none !important;
+    color: #fff;
+    border-bottom: none;
 }
 @font-face {
     font-family: "Gotham Rounded";
