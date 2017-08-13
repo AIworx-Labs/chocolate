@@ -33,7 +33,7 @@ body, .btn, textarea, input[type="button"], input[type="reset"], input[type="sub
 .wy-menu-vertical li.toctree-l2.current>a {
     background-color: #c9c9c9;
 }
-.wy-menu-vertical li.on a span.toctree-expand, .wy-menu-vertical li.current>a span.toctree-expand {
+.wy-menu-vertical li.on a span.toctree-expand, .wy-menu-vertical li.on a:hover span.toctree-expand, .wy-menu-vertical li.current>a span.toctree-expand, .wy-menu-vertical li.current>a:hover span.toctree-expand {
     color: #fff;
 }
 .wy-side-nav-search {
@@ -56,12 +56,9 @@ body, .btn, textarea, input[type="button"], input[type="reset"], input[type="sub
 .wy-side-nav-search>div.version {
     color: #EE3342;
 }
-.rst-versions {
-    background-color: #222B64;
-}
 .rst-versions a, .rst-versions a:hover, .rst-versions a:visited {
-    color: #fff;
-    border-bottom: none;
+    /* color: #fff;
+    border-bottom: none; */
 }
 @font-face {
     font-family: "Gotham Rounded";
