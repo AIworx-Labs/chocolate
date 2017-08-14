@@ -5,46 +5,8 @@ Search Space Representation
 
 .. currentmodule:: chocolate
 
-.. autoclass:: uniform
-   
-   .. automethod:: __call__
-
-.. autoclass:: quantized_uniform
-   
-   .. automethod:: __call__
-
-   .. automethod:: __iter__
-
-   .. automethod:: __getitem__
-
-   .. automethod:: __len__
-
-.. autoclass:: log
-   
-   .. automethod:: __call__
-
-.. autoclass:: quantized_log
-   
-   .. automethod:: __call__
-
-   .. automethod:: __iter__
-
-   .. automethod:: __getitem__
-
-   .. automethod:: __len__
-
-.. autoclass:: choice
-   
-   .. automethod:: __call__
-
-   .. automethod:: __iter__
-
-   .. automethod:: __getitem__
-
-   .. automethod:: __len__
-
 .. autoclass:: Space
-   
+
    .. automethod:: names
 
    .. automethod:: isactive
@@ -54,3 +16,49 @@ Search Space Representation
    .. automethod:: isdiscrete
 
    .. automethod:: subspaces
+
+.. autoclass:: Constant
+
+.. autoclass:: Distribution
+
+.. autoclass:: ContinuousDistribution
+
+.. autoclass:: QuantizedDistribution
+
+.. autoclass:: uniform
+
+   .. automethod:: __call__
+
+.. autoclass:: quantized_uniform
+
+   .. automethod:: __call__
+
+   .. automethod:: __iter__
+
+   .. automethod:: __getitem__
+
+   .. automethod:: __len__
+
+.. autoclass:: log
+
+   .. automethod:: __call__
+
+.. autoclass:: quantized_log
+
+   .. automethod:: __call__
+
+   .. automethod:: __iter__
+
+   .. automethod:: __getitem__
+
+   .. automethod:: __len__
+
+.. autoclass:: choice
+
+   .. automethod:: __call__
+
+   .. automethod:: __iter__
+
+   .. automethod:: __getitem__
+
+   .. automethod:: __len__

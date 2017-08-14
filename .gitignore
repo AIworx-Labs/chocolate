@@ -2,6 +2,7 @@
 *.pyc
 *.db
 *.lock
+*.so
 .coverage
 .noseids
 

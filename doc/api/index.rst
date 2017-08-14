@@ -20,12 +20,16 @@ Library Reference
 .. autosummary::
    :nosignatures:
 
+   Space
+   Constant
+   Distribution
+   ContinuousDistribution
+   QuantizedDistribution
    uniform
    quantized_uniform
    log
    quantized_log
    choice
-   Space
 
 .. rubric:: :doc:`connection`
 
