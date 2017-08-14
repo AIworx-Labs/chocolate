@@ -57,8 +57,8 @@ body, .btn, textarea, input[type="button"], input[type="reset"], input[type="sub
     color: #EE3342;
 }
 .rst-versions a, .rst-versions a:hover, .rst-versions a:visited {
-    /* color: #fff;
-    border-bottom: none; */
+    color: #fff;
+    border-bottom: none;
 }
 @font-face {
     font-family: "Gotham Rounded";
