@@ -59,12 +59,13 @@ from itertools import chain, count, islice, product, combinations
 import numpy
 
 class Constant(object):
+    """Implements Chocolat constant value. This value will be
+    used as is the space parameter dictionary."""
     def __init__(self, value):
         self.value = value
 
 class Distribution(object):
-    """Base class for every Chocolate distributions.
-    """
+    """Base class for every Chocolate distributions."""
     def __len__(self):
         raise NotImplementedError
 
@@ -72,13 +73,11 @@ class Distribution(object):
         raise NotImplementedError
 
 class ContinuousDistribution(Distribution):
-    """Base class for every Chocolate continuous distributions.
-    """
+    """Base class for every Chocolate continuous distributions."""
     pass
 
 class QuantizedDistribution(Distribution):
-    """Base class for every Chocolate quantized distributions.
-    """
+    """Base class for every Chocolate quantized distributions."""
     pass
 
 class uniform(ContinuousDistribution):
@@ -207,6 +206,15 @@ class log(uniform):
         self.base = base
 
     def __call__(self, x):
+        """Transforms *x*, a uniform number taken from the half-open continuous
+        interval :math:`[0, 1)`, to the represented distribution.
+
+        Returns:
+            The corresponding number in the discrete half-open interval
+            :math:`[\\text{base}^\\text{low}, \\text{base}^\\text{high})`
+            alligned on step size. If the output number is whole, this
+            method returns an :class:`int` otherwise a :class:`float`.
+        """
         return self.base**(super(log, self).__call__(x))
 
     def __repr__(self):

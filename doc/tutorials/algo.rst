@@ -40,6 +40,12 @@ Chocolate proposes 5 algorithms with their own advantages and disadvantages:
     search method is more suitable when the time required for a model evaluation is relatively
     low.
 
+  * :class:`~chocolate.MOCMAES` search is a multi-objective algorithm optimizing multiple
+    tradeoffs simultaneously. To do that, MOCMAES employs :math:`\mu` CMAES algorithms. Thus
+    requiring even more evaluation to converge to the optimal solution (in the order of
+    :math:`\mu` times 10 to 50, times the number of dimensions). This search method is more
+    suitable when the time required for a model evaluation is relatively low.
+
 In addition to the 5 previous algorithms Chocolate proposes a wrapper that transforms the
 conditional search space problem in a `multi-armed bandit problem
 <https://en.wikipedia.org/wiki/Multi-armed_bandit>`_.
@@ -51,19 +57,21 @@ conditional search space problem in a `multi-armed bandit problem
 
 Here is a table that resumes when to use each algorithm.
 
-+-----------------------------------------+----------------+-------------------+---------------+----------------+
-| Algorithm                               | Required time  | Dimensionality    | Continuity    | Conditionality |
-+=========================================+================+===================+===============+================+
-| :class:`~chocolate.Grid`                | Low            | Low               | All discrete  | Yes            |
-+-----------------------------------------+----------------+-------------------+---------------+----------------+
-| :class:`~chocolate.Random`              | Medium/High    | Medium/High       | All discrete  | Yes            |
-+-----------------------------------------+----------------+-------------------+---------------+----------------+
-| :class:`~chocolate.QuasiRandom`         | Medium/High    | Medium/High       | Mixed         | Yes            |
-+-----------------------------------------+----------------+-------------------+---------------+----------------+
-| :class:`~chocolate.Bayes`               | Medium/High    | Low/Medium        | Mixed         | Yes            |
-+-----------------------------------------+----------------+-------------------+---------------+----------------+
-| :class:`~chocolate.CMAES`               | Low/Medium     | Low/Medium        | Mixed         | No             |
-+-----------------------------------------+----------------+-------------------+---------------+----------------+
-| :class:`~chocolate.ThompsonSampling`    | --             | --                | --            | Yes            |
-+-----------------------------------------+----------------+-------------------+---------------+----------------+
++-----------------------------------------+-------+--------------+---------------+------------+-----------------+
+| Algorithm                               | Time  | Dimensions   | Continuity    | Conditions | Multi-objective |
++=========================================+=======+==============+===============+============+=================+
+| :class:`~chocolate.Grid`                | Low   | Low          | Discrete      | Yes        | No              |
++-----------------------------------------+-------+--------------+---------------+------------+-----------------+
+| :class:`~chocolate.Random`              | High  | High         | Discrete      | Yes        | No              |
++-----------------------------------------+-------+--------------+---------------+------------+-----------------+
+| :class:`~chocolate.QuasiRandom`         | High  | High         | Mixed         | Yes        | No              |
++-----------------------------------------+-------+--------------+---------------+------------+-----------------+
+| :class:`~chocolate.Bayes`               | High  | Medium       | Mixed         | Yes        | No              |
++-----------------------------------------+-------+--------------+---------------+------------+-----------------+
+| :class:`~chocolate.CMAES`               | Low   | Low          | Mixed         | No         | No              |
++-----------------------------------------+-------+--------------+---------------+------------+-----------------+
+| :class:`~chocolate.MOCMAES`             | Low   | Low          | Mixed         | No         | Yes             |
++-----------------------------------------+-------+--------------+---------------+------------+-----------------+
+| :class:`~chocolate.ThompsonSampling`    | --    | --           | --            | Yes        | --              |
++-----------------------------------------+-------+--------------+---------------+------------+-----------------+
 

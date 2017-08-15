@@ -110,10 +110,6 @@ def hypervolume_indicator(front, **kargs):
 
     Returns:
         The index of the least contributing candidate.
-
-    Returns the index of the candidate loss with the least hypervolume
-    contribution. The provided *front* should be a set of non-dominated
-    losses.
     """
     # Hypervolume use implicit minimization
     obj = numpy.array(front)
