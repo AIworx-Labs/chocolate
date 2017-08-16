@@ -4,10 +4,7 @@ import numpy
 
 try:
     # try importing the C version and set docstring
-    from .hv_ import hypervolume
-    from .pyhv import hypervolume as __hv
-    hypervolume.__doc__ = __hv.__doc__
-    del __hv
+    from .hv import hypervolume
 except ImportError:
     # fallback on python version
     from .pyhv import hypervolume
