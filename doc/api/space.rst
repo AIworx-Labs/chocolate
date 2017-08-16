@@ -17,8 +17,6 @@ Search Space Representation
 
    .. automethod:: subspaces
 
-.. autoclass:: Constant
-
 .. autoclass:: Distribution
 
 .. autoclass:: ContinuousDistribution

@@ -58,9 +58,10 @@ from itertools import chain, count, islice, product, combinations
 
 import numpy
 
-class Constant(object):
-    """Implements Chocolat constant value. This value will be
-    used as is the space parameter dictionary."""
+class _Constant(object):
+    """Implements Chocolat constant value. his is used internally
+    by other modules.
+    """
     def __init__(self, value):
         self.value = value
 
@@ -422,7 +423,7 @@ class Space(object):
                         cond_subspaces.append(s)
 
                     ts_space[k] = Space(cond_subspaces)
-                elif isinstance(v, Constant):
+                elif isinstance(v, _Constant):
                     self.constants.append((k, v.value))
                 else:
                     ts_key.append((k, v))

@@ -21,7 +21,6 @@ Library Reference
    :nosignatures:
 
    Space
-   Constant
    Distribution
    ContinuousDistribution
    QuantizedDistribution

@@ -1,5 +1,5 @@
 from ..base import Connection
-from ..space import Distribution, Space, Constant
+from ..space import Distribution, Space, _Constant
 
 def split_space(space):
     """Splits a conditional space into several unconditional subspaces.
@@ -23,7 +23,7 @@ def split_space(space):
                 out_subspace[name] = v
             elif v is not None:
                 # The condition has to be a distribution to be kept out of subspace keys
-                out_subspace[name] = Constant(v)
+                out_subspace[name] = _Constant(v)
 
         splitted.append(Space(out_subspace))
     return splitted
