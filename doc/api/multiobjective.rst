@@ -9,6 +9,4 @@ Multi-objective Tools
 
 .. autofunction:: hypervolume_indicator
 
-.. currentmodule:: chocolate.mo.pyhv
-
 .. autofunction:: hypervolume

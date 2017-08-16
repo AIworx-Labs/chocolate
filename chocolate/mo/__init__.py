@@ -4,10 +4,10 @@ import numpy
 
 try:
     # try importing the C version and set docstring
-    from .hv import hypervolume
+    from .hv import hypervolume as __hv
 except ImportError:
     # fallback on python version
-    from .pyhv import hypervolume
+    from .pyhv import hypervolume as __hv
 
 
 def argsortNondominated(losses, k, first_front_only=False):
@@ -92,6 +92,21 @@ def dominates(loss1, loss2, obj=slice(None)):
         elif l1i > l2i:
             return False
     return not_equal
+
+
+def hypervolume(pointset, ref):
+    """Computes the hypervolume of a point set.
+
+    Args:
+        pointset: A list of points.
+        ref: The origin from which to comute the hypervolume.
+            This value should be larger than all values in the
+            point set.
+
+    Returns:
+        The hypervolume of this point set.
+    """
+    return __hv(pointset, ref)
 
 
 def hypervolume_indicator(front, **kargs):

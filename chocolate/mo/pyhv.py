@@ -16,16 +16,11 @@ warnings.simplefilter("once", ImportWarning)
 warnings.warn("Using Python version of hypervolume module. Expect this to be slower.", ImportWarning)
 
 def hypervolume(pointset, ref):
-    """Hypervolume of a point set.
+    """Python version of hypervolume computation.
 
-    Args:
-        pointset: A list of points.
-        ref: The origin from which to comute the hypervolume.
-            This value should be larger than all values in the
-            point set.
+    .. note::
 
-    Returns:
-        The hypervolume of this point set.
+       Use the wrapper from :mod:`chocolate.mo` module instead.
     """
     hv = _HyperVolume(ref)
     return hv.compute(pointset)
