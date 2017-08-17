@@ -176,8 +176,8 @@ our conditions. All others will be set for these conditions. ::
         return space
 
 Guess how large is the largest conditional branch of this search space. It has
-36 parameters. 36 parameters is quite a lot to optimize by hand. That is why we
-built Chocolate. The entire tree has 124 parameters!
+36 parameters. 36 parameters is quite a lot to optimize by hand. The entire tree
+has 124 parameters! That is why we built Chocolate.
 
 Ho yeah, I forgot about the last bit of code. The one that does the trick. ::
 
