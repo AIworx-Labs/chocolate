@@ -4,7 +4,7 @@ Optimizing Over Multiple Objectives
 Chocolate offers multi-objective optimization. This means you can optimize
 the precision and recall without averaging them in a f1 score or even
 the precision and inference time of a model! Lets go straight to how to do
-that. First, as always, do the imports ::
+that. First, as always, import we import the necessary modules. ::
 
     from sklearn.datasets import make_classification
     from sklearn.ensemble import GradientBoostingClassifier
@@ -15,7 +15,7 @@ that. First, as always, do the imports ::
 
 Note that we imported both the :func:`sklearn.metrics.precision_score` and
 :func:`sklearn.metrics.recall_score` metrics. The train function is almost
-exactly identical to the :ref:`realistic <Realistic Example>` tutorial,
+identical to the :ref:`realistic <Realistic Example>` tutorial,
 except for the two losses. ::
 
     def score_gbt(X, y, params):
@@ -32,13 +32,13 @@ multiple objectives (in addition to using a multi-objective capable search
 algorithm).
 
 Then we will load our dataset (or `make <http://scikit-learn.org/stable/module
-s/generated/sklearn.datasets.make_classification.html>`_ it) ::
+s/generated/sklearn.datasets.make_classification.html>`_ it). ::
 
     X, y = make_classification(n_samples=80000, random_state=1)
 
 And just as in the :ref:`Basics` tutorial, we'll decide where the data is
 stored and the :ref:`search space <Search Space Representation>` for the
-algorithm. We will optimize over a mix of continuous and discrete variables ::
+algorithm. We will optimize over a mix of continuous and discrete variables. ::
 
     conn = choco.SQLiteConnection(url="sqlite:///db.db")
     s = {"learning_rate" : choco.uniform(0.001, 0.1),
@@ -61,14 +61,14 @@ optimization is all about compromise. In fact, the result of the optimization is
 non dominated compromises between the objectives. You can easily retrieve these
 compromises using the :meth:`~chocolate.SQLiteConnection.results_as_dataframe`
 method of your connection. To find the Pareto optimal solutions use
-:func:`chocolate.mo.argsortNondominated` function as follow ::
+:func:`chocolate.mo.argsortNondominated` function as follow. ::
 
     conn = choco.SQLiteConnection(url="sqlite:///db.db")
     results = conn.results_as_dataframe()
     losses = results.as_matrix(("_loss_0", "_loss_1"))
     first_front = argsortNondominated(losses, len(losses), first_front_only=True)
 
-And this front can be plotted using matplotlib ::
+This front can be plotted using matplotlib. ::
 
     plt.scatter(losses[:, 0], losses[:, 1], label="All candidates")
     plt.scatter(losses[first_front, 0], losses[first_front, 1], label="Optimal candidates")
@@ -78,7 +78,7 @@ And this front can be plotted using matplotlib ::
 
     plt.show()
 
-And we get this nice graph:
+And, we get this nice graph:
 
     .. image:: /images/precision_recall_pareto.png
        :width: 50%

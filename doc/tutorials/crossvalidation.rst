@@ -25,9 +25,9 @@ cross-validation object and assign it to the search algorithm. ::
         loss = evaluate(**params)
         print(token, params, loss)
         s.update(token, loss)
-        
+
 The preceding script, if run a couple of times, will output the following tokens and parameters
-(with probably different parameters) ::
+(with probably different parameters). ::
 
     {'_repetition_id': 0, '_chocolate_id': 0} {'p1': 8.1935000833291518, 'p2': 4.2668676560356529} 13.886112047266854
     {'_repetition_id': 1, '_chocolate_id': 0} {'p1': 8.1935000833291518, 'p2': 4.2668676560356529} 11.394347119228563
@@ -38,14 +38,14 @@ The preceding script, if run a couple of times, will output the following tokens
     {'_repetition_id': 0, '_chocolate_id': 2} {'p1': 2.4955760398088778, 'p2': 4.4722460515061} 6.82570693646037
 
 .. note::
-   
+
    The cross-validation is not responsible of shuffling your dataset. You must include
    this step in your script.
 
 The cross-validation object wraps the connection to reduce the loss of experiments with same
 ``"_chocolate_id"``. Thus, algorithms never see the repetitions, they only receive a single
 parameter set with the reduced loss. For the last example, the algorithms,
-when interrogating the database, will see the following parameter sets and losses ::
+when interrogating the database, will see the following parameter sets and losses. ::
 
     {'p1': 8.1935000833291518, 'p2': 4.2668676560356529} 12.023584465601298
     {'p1': 7.4031022047092732, 'p2': 0.14633280691567885} 6.5046270111817819

@@ -2,9 +2,9 @@ Optimizing Over Multiple Models
 ===============================
 
 Searching for a good configuration for multiple models at the same time is
-possible using conditional search spaces. A conditional search space is 
+possible using conditional search spaces. A conditional search space is
 defined by a list of dictionaries each containing one or more
-non-:class:`chocolate.Distribution` parameter. 
+non-:class:`chocolate.Distribution` parameter.
 
 Independent Parameter Search
 ----------------------------
@@ -33,7 +33,7 @@ one for each model. ::
 Lets now define the optimization function. Since we were able to directly
 define the classifier type as the parameter ``"algo"`` we can use that directly.
 Note that the F1 score has to be maximized, however, Chocolate always minimizes
-the loss. Thus, we shall return the negative of the F1 score.::
+the loss. Thus, we shall return the negative of the F1 score. ::
 
     from sklearn.metrics import f1_score
     from sklearn.model_selection import train_test_split
@@ -48,7 +48,7 @@ the loss. Thus, we shall return the negative of the F1 score.::
         return -f1_score(y_test, y_pred)
 
 Just as in the simpler examples, we will load our dataset, make our
-connection and explore the configurations using one of the algorithm ::
+connection and explore the configurations using one of the algorithm. ::
 
     from sklearn.datasets import make_classification
     X, y = make_classification(n_samples=80000, random_state=1)
