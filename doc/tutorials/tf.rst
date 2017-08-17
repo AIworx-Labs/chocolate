@@ -20,54 +20,44 @@ need a function that builds the model. ::
         net = inputs
 
         # Get the number of convolution layers from the parameter set
-        for i in range(params["num_conv_layers"]):
+        for i in range(0, params["num_conv_layers"]):
             with tf.variable_scope("conv_{}".format(i)):
                 # Create layer using input parameters
-                net = layers.convolution2d(net,
-                                           num_outputs=params["conv_{}_num_outputs".format(i)],
-                                           kernel_size=params["conv_{}_kernel_size".format(i)],
-                                           stride=params["conv_{}_stride".format(i)],
-                                           padding="SAME",
-                                           activation_fn=params["conv_{}_activation_fn".format(i)],
-                                           weights_initializer=layers.variance_scaling_initializer(),
-                                           biases_initializer=layers.variance_scaling_initializer())
+                net = layers.conv2d(net,
+                                    filters=params["conv_{}_num_outputs".format(i)],
+                                    kernel_size=params["conv_{}_kernel_size".format(i)],
+                                    strides=1,
+                                    padding="SAME",
+                                    activation=params["conv_{}_activation_fn".format(i)])
 
-                net = layers.convolution2d(net,
-                                           num_outputs=params["conv_{}_num_outputs".format(i)],
-                                           kernel_size=params["conv_{}_kernel_size".format(i)],
-                                           stride=params["conv_{}_stride".format(i)],
-                                           padding="SAME",
-                                           activation_fn=params["conv_{}_activation_fn".format(i)],
-                                           weights_initializer=layers.variance_scaling_initializer(),
-                                           biases_initializer=layers.variance_scaling_initializer())
+                net = layers.conv2d(net,
+                                    filters=params["conv_{}_num_outputs".format(i)],
+                                    kernel_size=params["conv_{}_kernel_size".format(i)],
+                                    strides=1,
+                                    padding="SAME",
+                                    activation=params["conv_{}_activation_fn".format(i)])
 
             with tf.variable_scope("mp_{}".format(i)):
-                net = layers.max_pool2d(net,
-                                        kernel_size=params["mp_{}_kernel_size".format(i)],
-                                        stride=params["mp_{}_stride".format(i)],
-                                        padding="VALID")
+                net = layers.max_pooling2d(net,
+                                           pool_size=params["mp_{}_kernel_size".format(i)],
+                                           strides=1,
+                                           padding="VALID")
 
         # Dropout keep probability is set a train time.
         net = tf.nn.dropout(net, keep_prob=dropout_keep_prob)
+        net = tf.contrib.layers.flatten(net)
 
         # Get the number of fully connectec layers from the parameter set
         for i in range(params["num_fc_layers"]):
             with tf.variable_scope("fc_{}".format(i)):
                 # Create layer using input parameters
-                net = fully_connected(net,
-                                      num_outputs=params["fc_{}_num_outputs".format(i)],
-                                      activation_fn=params["fc_{}_activation_fn".format(i)],
-                                      weights_initializer=layers.variance_scaling_initializer(),
-                                      biases_initializer=layers.variance_scaling_initializer())
+                net = tf.contrib.layers.fully_connected(net, params["fc_{}_num_outputs".format(i)],
+                                      activation_fn=params["fc_{}_activation_fn".format(i)])
 
                 net = tf.nn.dropout(net, keep_prob=dropout_keep_prob)
 
         with tf.variable_scope("output_layer"):
-            net = layers.fully_connected(net,
-                                         num_outputs=output_shape,
-                                         activation_fn=tf.identity,
-                                         weights_initializer=layers.variance_scaling_initializer(),
-                                         biases_initializer=layers.variance_scaling_initializer())
+            net = tf.contrib.layers.fully_connected(net, num_output, activation_fn=tf.identity)
 
         return net
 
@@ -78,7 +68,7 @@ probability. (No, it is not the ideal train function, it is just a demo.) ::
     def score_cnn(X, y, params):
         sess = tf.InteractiveSession()
 
-        train_steps = 10000
+        train_steps = 20
         num_classes = y.shape[1]
 
         X_ = tf.placeholder(tf.float32, shape=(None,) + X.shape[1:])
@@ -88,12 +78,11 @@ probability. (No, it is not the ideal train function, it is just a demo.) ::
 
         logits = cnn_model(X_, y_, keep_prob_, params)
 
-        loss_func = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, y_))
+        loss_func = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y_))
         optimizer_func = tf.train.AdamOptimizer(lr_).minimize(loss_func)
 
         predict = tf.argmax(logits, 1)
         correct_prediction = tf.equal(predict, tf.argmax(y_, 1))
-        accuracy_func = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         init = tf.global_variables_initializer()
         sess.run(init)
@@ -107,14 +96,19 @@ probability. (No, it is not the ideal train function, it is just a demo.) ::
         with sess.as_default():
             for step in range(train_steps):
                 lr = lr_init * lr_decay ** (step / decay_steps)
-                feed_dict = {lr_: lr, X_: X_train, y_: y_train, keep_prob_: params["dropout_keep_prob"]}
+                for i in range(0, X_train.shape[0], 128):
+                    feed_dict = {lr_: lr, X_: X_train[i:i+128], y_: y_train[i:i+128], 
+                                 keep_prob_: params["dropout_keep_prob"]}
 
                 _, train_loss = sess.run([optimizer_func, loss_func], feed_dict=feed_dict)
+            valid_loss = 0
+            for i in range(0, X_valid.shape[0], 128):
+                feed_dict = {X_: X_valid[i:i+128], y_: y_valid[i:i+128], keep_prob_: 1.0}
+                valid_loss += sess.run([loss_func], feed_dict=feed_dict)[0]
+            valid_loss = valid_loss / (X_valid.shape[0]//128)
 
-            feed_dict = {X_: X_valid, y_: y_valid, keep_prob_: 1.0}
-            valid_loss, valid_accuracy = sess.run([loss_func, accuracy_func], feed_dict=feed_dict)
+        return {"loss" : valid_loss}
 
-        return {"_loss" : valid_loss, "_accuracy" : valid_accuracy}
 
 The flexibility of the last pieces of code comes at a price; the number of
 parameters to set in the search space is quite large. The next table
@@ -129,13 +123,9 @@ summarizes all the parameters that needs to be set with their type
 +----------------------------+------------+----------------------------+------------+
 | ``conv_{i}_kernel_size``   | integer    | ``decay_steps``            | integer    |
 +----------------------------+------------+----------------------------+------------+
-| ``conv_{i}_stride``        | integer    | ``dropout_keep_prob``      | float      |
-+----------------------------+------------+----------------------------+------------+
-| ``conv_{i}_activation_fn`` | choice     |                            |            |
+| ``conv_{i}_activation_fn`` | choice     | ``dropout_keep_prob``      | float      |
 +----------------------------+------------+----------------------------+------------+
 | ``mp_{i}_kernel_size``     | integer    |                            |            |
-+----------------------------+------------+----------------------------+------------+
-| ``mp_{i}_stride``          | integer    |                            |            |
 +----------------------------+------------+----------------------------+------------+
 | ``num_fc_layers``          | integer    |                            |            |
 +----------------------------+------------+----------------------------+------------+
@@ -164,10 +154,10 @@ our conditions. All others will be set for these conditions. ::
         for i in range(1, max_num_conv_layers):
             condition = dict()
             for j in range(i):
-                condition["conv_{}_num_outputs".format(j)] = choco.quantized_log(low=4, high=11, step=1, base=2)
-                condition["conv_{}_kernel_size".format(j)] = choco.quantized_uniform(low=1, high=10, step=1)
-                condition["conv_{}_stride".format(j)] = choco.quantized_uniform(low=1, high=5, step=1)
+                condition["conv_{}_num_outputs".format(j)] = choco.quantized_log(low=3, high=10, step=1, base=2)
+                condition["conv_{}_kernel_size".format(j)] = choco.quantized_uniform(low=1, high=7, step=1)
                 condition["conv_{}_activation_fn".format(j)] = choco.choice([tf.nn.relu, tf.nn.elu, tf.nn.tanh])
+                condition["mp_{}_kernel_size".format(j)] = choco.quantized_uniform(low=2, high=5, step=1)
 
             num_conv_layer_cond[i] = condition
 
@@ -177,17 +167,16 @@ our conditions. All others will be set for these conditions. ::
         for i in range(1, max_num_fc_layers):
             condition = dict()
             for j in range(i):
-                condition["fc_{}_num_outputs".format(j)] = choco.quantized_log(low=4, high=13, step=1, base=2)
+                condition["fc_{}_num_outputs".format(j)] = choco.quantized_log(low=3, high=10, step=1, base=2)
                 condition["fc_{}_activation_fn".format(j)] = choco.choice([tf.nn.relu, tf.nn.elu, tf.nn.tanh])
 
             num_fc_layer_cond[i] = condition
-
         space["num_fc_layers"] = num_fc_layer_cond
 
         return space
 
 Guess how large is the largest conditional branch of this search space. It has
-38 parameters. 38 parameters is quite a lot to optimize by hand. That is why we
+34 parameters. 34 parameters is quite a lot to optimize by hand. That is why we
 built Chocolate.
 
 Ho yeah, I forgot about the last bit of code. The one that does the trick. ::
@@ -197,7 +186,7 @@ Ho yeah, I forgot about the last bit of code. The one that does the trick. ::
 
         space = create_space()
         conn = choco.SQLiteConnection(url="sqlite:///db.db")
-        sampler = choco.QuasiRandom(conn, space, random_state=42, skip=0)
+        sampler = choco.Bayes(conn, space, random_state=42, skip=0)
 
         token, params = sampler.next()
         loss = score_cnn(X, y, params)
