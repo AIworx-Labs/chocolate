@@ -18,7 +18,7 @@ cross-validation object and assign it to the search algorithm. ::
     if __name__ == "__main__":
         space = {"p1": choco.uniform(0, 10), "p2": choco.uniform(0, 5)}
         connection = choco.SQLiteConnection(url="sqlite:///cv.db")
-        cv = Repeat(repetitions=3, reduce=np.mean, rep_col="_repetition_id")
+        cv = choco.Repeat(repetitions=3, reduce=np.mean, rep_col="_repetition_id")
         s = choco.Grid(space, connection, crossvalidation=cv)
 
         token, params = s.next()
