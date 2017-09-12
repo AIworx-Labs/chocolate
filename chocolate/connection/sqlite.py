@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import gc
 import pickle
 import re
 
@@ -106,21 +107,26 @@ class SQLiteConnection(Connection):
         """Get a list of all entries of the result table. The order is
         undefined.
         """
-        with dataset.connect(self.url) as tx:
-            return list(tx[self.result_table_name].all())
+        # Only way to ensure old db instances are closed is to force garbage collection
+        # See dataset note : https://dataset.readthedocs.io/en/latest/api.html#notes
+        gc.collect()
+        db = dataset.connect(self.url)
+        return list(db[self.result_table_name].all())
 
     def find_results(self, filter):
         """Get a list of all results associated with *filter*. The order is
         undefined.
         """
-        with dataset.connect(self.url) as tx:
-            return list(tx[self.result_table_name].find(**filter))
+        gc.collect()
+        db = dataset.connect(self.url)
+        return list(db[self.result_table_name].find(**filter))
 
     def insert_result(self, document):
         """Insert a new *document* in the result table. The columns must not
         be defined nor all present. Any new column will be added to the
         database and any missing column will get value None.
         """
+        gc.collect()
         db = dataset.connect(self.url)
         return db[self.result_table_name].insert(document)
 
@@ -131,6 +137,7 @@ class SQLiteConnection(Connection):
             filter: An identifier of the rows to update.
             values: A mapping of values to update or add.
         """
+        gc.collect()
         filter = filter.copy()
         keys = list(filter.keys())
         filter.update(values)
@@ -140,27 +147,31 @@ class SQLiteConnection(Connection):
     def count_results(self):
         """Get the total number of entries in the result table.
         """
-        with dataset.connect(self.url) as tx:
-            return tx[self.result_table_name].count()
+        gc.collect()
+        db = dataset.connect(self.url)
+        return db[self.result_table_name].count()
 
     def all_complementary(self):
         """Get all entries of the complementary information table as a list.
         The order is undefined.
         """
-        with dataset.connect(self.url) as tx:
-            return list(tx[self.complementary_table_name].all())
+        gc.collect()
+        db = dataset.connect(self.url)
+        return list(db[self.complementary_table_name].all())
 
     def insert_complementary(self, document):
         """Insert a new document (row) in the complementary information table.
         """
+        gc.collect()
         db = dataset.connect(self.url)
         return db[self.complementary_table_name].insert(document)
 
     def find_complementary(self, filter):
         """Find a document (row) from the complementary information table.
         """
-        with dataset.connect(self.url) as tx:
-            return tx[self.complementary_table_name].find_one(**filter)
+        gc.collect()
+        db = dataset.connect(self.url)
+        return db[self.complementary_table_name].find_one(**filter)
 
     def get_space(self):
         """Returns the space used for previous experiments.
@@ -168,13 +179,14 @@ class SQLiteConnection(Connection):
         Raises:
             AssertionError: If there are more than one space in the database.
         """
-        with dataset.connect(self.url) as tx:
-            entry_count = tx[self.space_table_name].count()
-            if entry_count == 0:
-                return None
+        gc.collect()
+        db = dataset.connect(self.url)
+        entry_count = db[self.space_table_name].count()
+        if entry_count == 0:
+            return None
 
-            assert entry_count == 1, "Space table unexpectedly contains more than one space."
-            return pickle.loads(tx[self.space_table_name].find_one()["space"])
+        assert entry_count == 1, "Space table unexpectedly contains more than one space."
+        return pickle.loads(db[self.space_table_name].find_one()["space"])
 
     def insert_space(self, space):
         """Insert a space in the database.
@@ -182,6 +194,7 @@ class SQLiteConnection(Connection):
         Raises:
             AssertionError: If a space is already present in the database.
         """
+        gc.collect()
         db = dataset.connect(self.url)
         assert db[self.space_table_name].count() == 0, ("Space table cannot contain more than one space, "
                                                         "clear table first.")
@@ -190,6 +203,7 @@ class SQLiteConnection(Connection):
     def clear(self):
         """Clear all data from the database.
         """
+        gc.collect()
         db = dataset.connect(self.url)
         db[self.result_table_name].drop()
         db[self.complementary_table_name].drop()
