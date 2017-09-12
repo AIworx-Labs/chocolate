@@ -40,11 +40,16 @@ class Repeat(object):
     def all_results(self):
         results = self.orig_all_results()
         reduced_results = list()
+        if results:
+            loss_columns = [col for col in results[0].keys() if "_loss" in col]
         for result_group in self.group_repetitions(results):
-            losses = [r["_loss"] for r in result_group if r["_loss"] is not None]
-            if len(losses) > 0:
+            losses = {}
+            for col in loss_columns:
+                losses[col] = [r[col] for r in result_group if r[col] is not None]
+            if any(len(l) > 0 for l in losses.values()):
                 result = result_group[0].copy()
-                result["_loss"] = self.reduce(losses)
+                for col in loss_columns:
+                    result[col] = self.reduce(losses[col])
                 reduced_results.append(result)
             else:
                 reduced_results.append(result_group[0])
@@ -65,11 +70,10 @@ class Repeat(object):
 
             results = self.orig_all_results()
             names = set(self.space.names())
-            names.add("_loss")
             for result_group in self.group_repetitions(results):
                 if len(result_group) < self.repetitions:
                     vec = [result_group[0][k] if k in result_group[0] else None for k in self.space.names()]
-                    token = {k: result_group[0][k] for k in result_group[0].keys() if k not in names}
+                    token = {k: result_group[0][k] for k in result_group[0].keys() if (k not in names) and (not "_loss" in k)}
                     token.update({self.rep_col: len(result_group)})
                     entry = result_group[0].copy()
                     # Ensure we don't have a duplicated id in the database
@@ -91,7 +95,7 @@ class Repeat(object):
 
         for row in results:
             row = self.conn.pop_id(row)
-            id_ = tuple((k, row[k]) for k in sorted(row.keys()) if k not in names)
+            id_ = tuple((k, row[k]) for k in sorted(row.keys()) if (k not in names) and (not "_loss" in k))
             grouped[id_].append(row)
 
         return grouped.values()
