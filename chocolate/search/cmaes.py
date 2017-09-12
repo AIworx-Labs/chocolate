@@ -248,7 +248,6 @@ class CMAES(SearchAlgorithm):
         assert self.parent is not None, "No parent for CMA-ES internal update"
         assert "loss" in self.parent, "Parent has no loss in CMA-ES internal update"
         assert self.parent["loss"] is not None, "Invalid loss for CMA-ES parent"
-
         # Remove not evaluated
         candidates = [c for c in candidates if c["loss"] is not None]
 
@@ -578,8 +577,7 @@ class MOCMAES(SearchAlgorithm):
         assert len(self.parents) == self.mu, "Invalid number of parents in MO-CMA-ES internal update"
         assert all("loss" in p for p in self.parents), "One parent has no loss in MO-CMA-ES internal update"
         assert all(p["loss"] is not None for p in self.parents), "Loss is None for a parent in MO-CMA-ES"
-
-        p_idx = candidate["parent_idx"]
+        p_idx = int(candidate["parent_idx"])
         chosen = self._select(self.parents + [candidate])
         candidate_is_chosen = self.mu in chosen
 
