@@ -210,7 +210,7 @@ class TestBayes(unittest.TestCase):
             db.append(entry)
             self.mock_conn.count_results.return_value = len(db)
 
-    def _create_fake_db(self, n=25):
+    def _create_fake_db(self, n=15):
         db = [{
             "_chocolate_id": i,
             "a":             numpy.random.random(),
