@@ -16,8 +16,9 @@ class TestBayes(unittest.TestCase):
 
         self.mock_conn = MagicMock(name="connection")
         self.mock_conn.get_space.return_value = Space(s)
+        self.space = s
 
-        self.search = Bayes(self.mock_conn, s)
+        self.search = Bayes(self.mock_conn, self.space)
 
     def test_cold_start(self):
         self.mock_conn.all_results.return_value = []
@@ -142,6 +143,36 @@ class TestBayes(unittest.TestCase):
 
         self.assertIsNotNone(out)
 
+    def test_ei_selection(self):
+        self.search = Bayes(self.mock_conn, self.space, utility_function="ei")
+
+        db = self._create_fake_db(n=11)
+        self.mock_conn.all_results.return_value = db
+        self.mock_conn.count_results.return_value = len(db)
+        self.mock_conn.all_complementary.return_value = []
+
+        token, p = self.search.next()
+
+        self.assertIn("_chocolate_id", token)
+        self.assertEqual(token["_chocolate_id"], 11)
+
+        self.assertIn("a", p)
+
+    def test_ucb_selection(self):
+        self.search = Bayes(self.mock_conn, self.space, utility_function="ucb")
+
+        db = self._create_fake_db(n=11)
+        self.mock_conn.all_results.return_value = db
+        self.mock_conn.count_results.return_value = len(db)
+        self.mock_conn.all_complementary.return_value = []
+
+        token, p = self.search.next()
+
+        self.assertIn("_chocolate_id", token)
+        self.assertEqual(token["_chocolate_id"], 11)
+
+        self.assertIn("a", p)
+
     def test_acquisition_func(self):
     #     #db = [{"_chocolate_id" : 0, "a" : 0, "b" : 0, "_loss" : 0.1},
     #     #     {"_chocolate_id" : 1, "a" : 0.5, "b" : 0.5, "_loss" : 0.1}]
@@ -179,11 +210,11 @@ class TestBayes(unittest.TestCase):
             db.append(entry)
             self.mock_conn.count_results.return_value = len(db)
 
-    def _create_fake_db(self):
+    def _create_fake_db(self, n=25):
         db = [{
             "_chocolate_id": i,
             "a":             numpy.random.random(),
             "b":             numpy.random.random(),
             "_loss":         numpy.random.random()
-        } for i in range(25)]
+        } for i in range(n)]
         return db

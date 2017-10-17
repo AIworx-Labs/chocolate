@@ -41,10 +41,10 @@ class Bayes(SearchAlgorithm):
         self.n_bootstrap = n_bootstrap
         if utility_function == "ucb":
             self.utility = self._ucb
-            self.kappa = kappa
+            self.utility_kws = {"kappa": kappa}
         elif utility_function == "ei":
             self.utility = self._ei
-            self.xi = xi
+            self.utility_kws = {"xi": xi}
 
         self.random_state = numpy.random.RandomState()
 
@@ -99,7 +99,9 @@ class Bayes(SearchAlgorithm):
         for x_try in x_seeds:
             # Find the minimum of minus the acquisition function
             x_try[[not i for i in self.space.isactive(x_try)]] = 0
-            res = minimize(lambda x: -self.utility(x.reshape(1, -1), gp=gp, y_max=y_max, kappa=self.kappa),
+
+            res = minimize(lambda x: -self.utility(x.reshape(1, -1), gp=gp, y_max=y_max,
+                                                   **self.utility_kws),
                            x_try.reshape(1, -1),
                            bounds=bounds,
                            method="L-BFGS-B")
