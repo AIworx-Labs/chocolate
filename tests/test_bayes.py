@@ -195,9 +195,9 @@ class TestBayes(unittest.TestCase):
         self.mock_conn.all_results.return_value = db
         self.mock_conn.count_results.return_value = 0
 
-        self.search = Bayes(self.mock_conn, s)
+        self.search = Bayes(self.mock_conn, s, n_bootstrap=5)
 
-        for i in range(15):
+        for i in range(8):
             token, p = self.search.next()
 
             self.assertIn("_chocolate_id", token)
