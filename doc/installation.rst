@@ -4,7 +4,7 @@ Installation
 Chocolate is installed using `pip <http://www.pip-installer.org/en/latest/>`_,
 unfortunately we don't have any PyPI package yet. Here is the line you have to type ::
 
-    pip install git+https://github.com/NovaSyst/chocolate@master
+    pip install git+https://github.com/AIworx-Labs/chocolate@master
 
 Dependencies
 ------------
