@@ -44,7 +44,7 @@ algorithm. We will optimize over a mix of continuous and discrete variables. ::
 
 Finally, we will define our sampling algorithm, ::
 
-    sampler = choco.QuasiRandom(conn, s, random_state=110, skip=3)
+    sampler = choco.QuasiRandom(conn, s, seed=110, skip=3)
 
 request a set of parameters to test, ::
 
