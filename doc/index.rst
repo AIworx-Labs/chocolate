@@ -11,7 +11,7 @@ of the optimisation.
 Chocolate has been designed and optimized for hyperparameter optimization where
 each function evaluation takes very long to complete and is difficult to parallelize.
 
-Chocolat is licensed under the `3-Clause BSD License
+Chocolate is licensed under the `3-Clause BSD License
 <https://opensource.org/licenses/BSD-3-Clause>`_
 
 * **Tutorials**
