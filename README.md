@@ -26,7 +26,7 @@ and three useful backends:
 - MongoDB
 - Pandas Data Frame
 
-Chocolat is licensed under the [3-Clause BSD License](http://opensource.org/licenses/BSD-3-Clause)
+Chocolate is licensed under the [3-Clause BSD License](http://opensource.org/licenses/BSD-3-Clause)
 
 ## Documentation
 
