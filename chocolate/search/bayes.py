@@ -39,6 +39,8 @@ class Bayes(SearchAlgorithm):
         if len(self.space.subspaces()) > 1:
             self.k = kernels.ConditionalKernel(self.space)
         self.n_bootstrap = n_bootstrap
+        if self.n_bootstrap <= 0:
+            raise ValueError("Bayes algorithm needs at least a point to boostrap.")
         if utility_function == "ucb":
             self.utility = self._ucb
             self.utility_kws = {"kappa": kappa}
