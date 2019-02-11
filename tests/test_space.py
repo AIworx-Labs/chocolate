@@ -30,12 +30,12 @@ class TestSpace(unittest.TestCase):
         l = log(1, 10, 2)
         s = Space({"a" : u,
                    "b" : l})
-        
+
         self.assertEqual(2, len(s))
         self.assertEqual(s.names(), ["a", "b"])
         self.assertEqual(s.isdiscrete(), False)
         self.assertEqual(s.subspaces(), [[u, l]])
-        
+
         x = [0, 0.5]
         self.assertEqual(s(x), {"a" : 0.0005, "b" : 2**5.5})
 
@@ -50,7 +50,7 @@ class TestSpace(unittest.TestCase):
         self.assertEqual(s.names(), ["a", "b"])
         self.assertEqual(s.isdiscrete(), True)
         self.assertEqual(s.subspaces(), [[qu, ql]])
-        
+
         x = [0, 0.5]
         self.assertEqual(s(x), {"a" : 0.01, "b" : 10**5})
 
@@ -70,7 +70,7 @@ class TestSpace(unittest.TestCase):
         self.assertEqual(s.names(), ["_subspace", "k1_a_k2_b_a", "k1_a_k2_b_b", "k1_a_k2_c_a", "k1_a_k2_c_c"])
         self.assertEqual(s.isdiscrete(), False)
         self.assertEqual(s.subspaces(), [[0.0, u, l, None, None], [0.5, None, None, qu, ql]])
-        
+
         x = [0, 0.1, 0.7, 0.0, 0.0]
         res = s(x)
         self.assertEqual(res["k1"], "a")
@@ -133,7 +133,7 @@ class TestSpace(unittest.TestCase):
         self.assertEqual(s.names(), ['algo__subspace', 'algo_algo_knn_n_neighbors', 'algo_algo_svm_C', 'algo_algo_svm_cond2__subspace', 'algo_algo_svm_cond2_cond2_bb_abc', 'algo_algo_svm_kernel__subspace', 'algo_algo_svm_kernel_kernel_rbf_gamma'])
         self.assertEqual(s.isdiscrete(), False)
         self.assertEqual(s.subspaces(), [[0.0, qu, None, None, None, None, None], [0.5, None, l1, 0.0, None, 0.0, None], [0.5, None, l1, 0.0, None, 0.5, l2], [0.5, None, l1, 0.5, u, 0.0, None], [0.5, None, l1, 0.5, u, 0.5, l2]])
-        
+
         x = [0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0]
         res = s(x)
         self.assertEqual(res["algo"], "knn")
@@ -192,6 +192,8 @@ class TestSpace(unittest.TestCase):
 
         self.assertNotEqual(Space(s1), Space(s2))
         self.assertNotEqual(Space(s1), Space(s3))
+        self.assertFalse(Space(s1) == Space(s2))
+        self.assertFalse(Space(s1) == Space(s3))
 
     def test_invalid_parameter_name(self):
         s1 = {"" : uniform(1, 2)}
@@ -205,7 +207,7 @@ class TestSpace(unittest.TestCase):
     def test_uniform(self):
         low, high = 0.01, 0.1
         dist = uniform(low, high)
-        
+
         self.assertAlmostEqual(dist(0.0), low)
         self.assertAlmostEqual(dist(0.5), 0.5 * (high - low) + low)
         self.assertAlmostEqual(dist(0.999), 0.999 * (high - low) + low)
@@ -218,7 +220,7 @@ class TestSpace(unittest.TestCase):
         low, high, step = 0.01, 0.1, 0.02
         dist = quantized_uniform(low, high, step)
         # [0.01, 0.03, 0.05, 0.07, 0.09]
-        
+
         self.assertAlmostEqual(dist(0.0), low)
         self.assertAlmostEqual(dist(0.5), 0.05)
         self.assertAlmostEqual(dist(0.999), 0.09)
@@ -242,7 +244,7 @@ class TestSpace(unittest.TestCase):
     def test_log(self):
         low, high, base = 1, 10, 2
         dist = log(low, high, base)
-        
+
         # 2^low
         self.assertAlmostEqual(dist(0.0), 2**low)
         # 2^(0.5 * (high - low) + low)
@@ -265,7 +267,7 @@ class TestSpace(unittest.TestCase):
         low, high, step, base = 1, 10, 3, 2
         dist = quantized_log(low, high, step, base)
         # [2**1, 2**4, 2**7]
-        
+
         self.assertAlmostEqual(dist(0.0), 2**low)
         self.assertAlmostEqual(dist(0.5), 2**4)
         self.assertAlmostEqual(dist(0.999), 2**7)
