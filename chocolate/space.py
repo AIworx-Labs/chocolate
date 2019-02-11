@@ -73,6 +73,9 @@ class Distribution(object):
     def __getitem__(self, item):
         raise NotImplementedError
 
+    def __ne__(self, other):
+        return not (self == other)
+
 class ContinuousDistribution(Distribution):
     """Base class for every Chocolate continuous distributions."""
     pass
@@ -768,6 +771,9 @@ class Space(object):
         if isinstance(other, Space):
             return self.spaces == other.spaces
         return False
+
+    def __ne__(self, other):
+        return not (self == other)
 
 
 if __name__ == "__main__":
