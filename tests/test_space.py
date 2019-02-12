@@ -194,6 +194,8 @@ class TestSpace(unittest.TestCase):
         self.assertNotEqual(Space(s1), Space(s3))
         self.assertFalse(Space(s1) == Space(s2))
         self.assertFalse(Space(s1) == Space(s3))
+        self.assertTrue(Space(s1) != Space(s2))
+        self.assertTrue(Space(s1) != Space(s3))
 
     def test_invalid_parameter_name(self):
         s1 = {"" : uniform(1, 2)}
