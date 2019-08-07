@@ -73,10 +73,13 @@ class Random(SearchAlgorithm):
             # Restore state
             self.random_state.rand(i - self.rndrawn)
 
-            drawn = [doc["_chocolate_id"] for doc in self.conn.all_results()]
+            drawn = [int(doc["_chocolate_id"]) for doc in self.conn.all_results()]
 
-            choices = sorted(set(range(l)) - set(drawn))
-            sample = self.random_state.choice(choices)
+            while True:
+                sample = self.random_state.randint(0, l)
+                if sample not in set(drawn):
+                    break
+
             self.rndrawn += i - self.rndrawn + 1
 
             # Some dbs don't like numpy.int64

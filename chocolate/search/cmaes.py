@@ -190,15 +190,16 @@ class CMAES(SearchAlgorithm):
         ancestors = list()
         ancestors_ids = set()
         for c in sorted(self.conn.all_complementary(), key=itemgetter("_chocolate_id")):
-            candidate = dict()
-            candidate["step"] = numpy.array([c[str(k)] for k in self.space.names()])
-            candidate["chocolate_id"] = c["_chocolate_id"]
-            candidate["ancestor_id"] = c["_ancestor_id"]
-            candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
-            candidate["loss"] = results[c["_chocolate_id"]].get("_loss", None)
+            if c["_chocolate_id"] in results:
+                candidate = dict()
+                candidate["step"] = numpy.array([c[str(k)] for k in self.space.names()])
+                candidate["chocolate_id"] = c["_chocolate_id"]
+                candidate["ancestor_id"] = c["_ancestor_id"]
+                candidate["X"] = numpy.array([results[c["_chocolate_id"]][str(k)] for k in self.space.names()])
+                candidate["loss"] = results[c["_chocolate_id"]].get("_loss", None)
 
-            ancestors.append(candidate)
-            ancestors_ids.add(candidate["chocolate_id"])
+                ancestors.append(candidate)
+                ancestors_ids.add(candidate["chocolate_id"])
 
         return ancestors, ancestors_ids
 
