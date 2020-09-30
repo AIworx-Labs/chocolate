@@ -1,4 +1,4 @@
-# Chocolate
+# Chocolates
 Chocolate is a **completely asynchronous** optimisation framework relying solely on a
 database to share information between workers. Chocolate uses **no master process** for
 distributing tasks. Every task is completely independent and only gets its
