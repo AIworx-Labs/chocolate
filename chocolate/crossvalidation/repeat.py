@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import numpy
+import logging
 
 class Repeat(object):
     """Repeats each experiment a given number of times and reduces the losses for
@@ -45,13 +46,20 @@ class Repeat(object):
         for result_group in self.group_repetitions(results):
             losses = {}
             for col in loss_columns:
-                losses[col] = [r[col] for r in result_group if r[col] is not None]
+                losses[col] = [r.get(col) for r in result_group if r.get(col) is not None]
+                if not losses[col]:
+                    logging.warning(f"No loss values found for column {col} in result group {result_group}")
             if any(len(l) > 0 for l in losses.values()):
                 result = result_group[0].copy()
                 for col in loss_columns:
-                    result[col] = self.reduce(losses[col])
+                    if losses[col]:
+                        result[col] = self.reduce(losses[col])
+                    else:
+                        result[col] = None
+                        logging.warning(f"Setting {col} to None due to missing values")
                 reduced_results.append(result)
             else:
+                logging.warning(f"No loss values found for any column in result group {result_group}")
                 reduced_results.append(result_group[0])
         return reduced_results
 
